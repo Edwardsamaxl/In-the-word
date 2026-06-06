@@ -1,3 +1,5 @@
+import { journey } from "./journey.js";
+
 const STAGE_WIDTH = 412;
 const ACTOR_SIZE = 22;
 const ENTRY_DRIFT_DURATION = 1100;
@@ -8,6 +10,14 @@ const CHAR_STEP = 34;
 const SEA_ROWS = 9;
 const SEA_COLS = 35;
 const LEVEL_HINT = "一直游下去。";
+
+// Continuous yellow→blue water ramp. The page opens muddy ochre ("海是黄的")
+// and the blue front (blueProgress, monotonic) sweeps it to sea-blue behind the swimmer.
+const SILT_PAPER = [214, 190, 131]; // 暖浊赭黄纸面
+const MIST_PAPER = [158, 196, 214]; // --sea-mist 淡青过渡
+const SEA_PAPER = [23, 107, 155]; // --sea 终章海蓝
+const INK_SILT = [74, 58, 22]; // 土黄墨：黄流段字色
+const INK_BLUE = [23, 107, 155]; // 蓝段字色
 
 const PATH_SEGMENTS = [
   { text: "海是黄的", tone: "silt" },
@@ -26,6 +36,12 @@ const smoothstep = (start, end, value) => {
 const mixColor = (from, to, amount) => {
   const channel = (index) => Math.round(lerp(from[index], to[index], amount));
   return `rgb(${channel(0)} ${channel(1)} ${channel(2)})`;
+};
+
+// "r g b" triplet for CSS `rgb(var(--char-rgb) / a)` color application.
+const mixTriplet = (from, to, amount) => {
+  const channel = (index) => Math.round(lerp(from[index], to[index], amount));
+  return `${channel(0)} ${channel(1)} ${channel(2)}`;
 };
 
 export class LevelThreeGame {
@@ -86,12 +102,110 @@ export class LevelThreeGame {
 
     this.endLine.className = "level-three-end";
     this.endLine.textContent = "海，已经蓝了。";
+    this.buildSettlement();
     this.scene.replaceChildren(
       this.moon,
       this.reflection,
       this.viewport,
       this.endLine,
+      this.settlement,
     );
+  }
+
+  buildSettlement() {
+    this.settlement = document.createElement("div");
+    this.settlement.className = "l3-settlement";
+    this.settlement.setAttribute("aria-hidden", "true");
+
+    const lead = document.createElement("p");
+    lead.className = "l3-settle-lead";
+    lead.textContent = "你真的游到了海水变蓝。";
+
+    const arc = document.createElement("p");
+    arc.className = "l3-settle-arc";
+    arc.textContent = "从故乡，一直游到海水变蓝。";
+
+    const stats = document.createElement("dl");
+    stats.className = "l3-settle-stats";
+    this.statTime = document.createElement("dd");
+    this.statSteps = document.createElement("dd");
+    const timeLabel = document.createElement("dt");
+    timeLabel.textContent = "用时";
+    const stepLabel = document.createElement("dt");
+    stepLabel.textContent = "步数";
+    stats.append(timeLabel, this.statTime, stepLabel, this.statSteps);
+
+    const actions = document.createElement("div");
+    actions.className = "l3-settle-actions";
+    this.shareButton = document.createElement("button");
+    this.shareButton.type = "button";
+    this.shareButton.className = "l3-share-button";
+    this.shareButton.textContent = "截图分享";
+    this.shareButton.addEventListener("click", () => this.captureShare());
+    this.replayButton = document.createElement("button");
+    this.replayButton.type = "button";
+    this.replayButton.className = "l3-replay-button";
+    this.replayButton.textContent = "再走一次";
+    this.replayButton.addEventListener("click", () => this.replay());
+    actions.append(this.shareButton, this.replayButton);
+
+    this.settlement.append(lead, arc, stats, actions);
+  }
+
+  replay() {
+    journey.reset();
+    window.location.assign(window.location.pathname);
+  }
+
+  captureShare() {
+    const { time, steps } = journey.format();
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext("2d");
+    const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
+    gradient.addColorStop(0, "#0d5482");
+    gradient.addColorStop(0.55, "#176b9b");
+    gradient.addColorStop(1, "#074a73");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    const moonGradient = ctx.createRadialGradient(820, 360, 8, 820, 360, 96);
+    moonGradient.addColorStop(0, "#fcf0c4");
+    moonGradient.addColorStop(0.7, "#e8c66a");
+    moonGradient.addColorStop(1, "rgba(216,173,74,0)");
+    ctx.fillStyle = moonGradient;
+    ctx.beginPath();
+    ctx.arc(820, 360, 96, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(247,246,242,0.94)";
+    ctx.font = "600 84px 'Source Han Serif SC', serif";
+    ctx.fillText("你真的游到了", 540, 760);
+    ctx.fillText("海水变蓝。", 540, 880);
+
+    ctx.fillStyle = "rgba(247,246,242,0.66)";
+    ctx.font = "400 46px 'Source Han Serif SC', serif";
+    ctx.fillText(`用 ${journey.steps} 步，从李白游到余华`, 540, 1080);
+
+    ctx.fillStyle = "rgba(247,246,242,0.8)";
+    ctx.font = "400 52px 'Source Han Serif SC', serif";
+    ctx.fillText(`用时 ${time}　步数 ${steps}`, 540, 1320);
+
+    ctx.fillStyle = "#e8d9a8";
+    ctx.font = "500 56px 'Source Han Serif SC', serif";
+    ctx.fillText("#一直游", 540, 1620);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "一直游到海水变蓝.png";
+      link.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
   }
 
   renderSea() {
@@ -113,7 +227,6 @@ export class LevelThreeGame {
         cell.style.setProperty("--sea-size", `${size}px`);
         cell.style.setProperty("--sea-alpha", alpha.toFixed(3));
         cell.style.setProperty("--sea-delay", `${((row * 5 + col * 3) % 19) * -0.17}s`);
-        cell.style.setProperty("--blue-level", "0");
         this.seaField.append(cell);
         this.seaChars.push({ element: cell, x, row, col });
       }
@@ -187,7 +300,7 @@ export class LevelThreeGame {
     this.actor.dataset.sheet = "motion";
     this.actor.dataset.frame = "0";
     this.actor.dataset.pose = "auto";
-    this.paper.style.backgroundColor = "#f7f6f2";
+    this.paper.style.backgroundColor = mixColor(SILT_PAPER, SILT_PAPER, 0);
     this.update(0, performance.now(), 0);
     if (this.entering) this.updateEntry(0, performance.now());
   }
@@ -205,19 +318,21 @@ export class LevelThreeGame {
     this.lastActiveIndex = -1;
     this.stage.classList.remove("is-level-three-complete");
     this.endLine.classList.remove("is-visible");
+    this.settlement.classList.remove("is-visible");
+    this.settlement.setAttribute("aria-hidden", "true");
     this.actor.style.opacity = "1";
     this.showHint();
     this.header?.classList.remove("is-dissolved");
     this.moon.classList.remove("is-settled");
     this.reflection.classList.remove("is-settled");
-    this.paper.style.backgroundColor = "#f7f6f2";
+    this.paper.style.backgroundColor = mixColor(SILT_PAPER, SILT_PAPER, 0);
     this.pathChars.forEach(({ element }) => {
       element.classList.remove("is-current", "is-passed");
       element.style.removeProperty("--reveal");
       element.style.removeProperty("--sink");
-      element.style.removeProperty("--blue-level");
+      element.style.removeProperty("--char-rgb");
     });
-    this.seaChars.forEach(({ element }) => element.style.setProperty("--blue-level", "0"));
+    this.seaChars.forEach(({ element }) => element.style.removeProperty("--char-rgb"));
     this.update(0, performance.now(), 0);
     if (shouldRestart) requestAnimationFrame((time) => this.tick(time));
   }
@@ -241,6 +356,19 @@ export class LevelThreeGame {
       if (this.disposed) return;
       this.endLine.classList.add("is-visible");
     }, 650);
+    window.setTimeout(() => {
+      if (this.disposed) return;
+      this.revealSettlement();
+    }, 2400);
+  }
+
+  revealSettlement() {
+    const { time, steps } = journey.format();
+    this.statTime.textContent = time;
+    this.statSteps.textContent = steps;
+    this.endLine.classList.remove("is-visible");
+    this.settlement.setAttribute("aria-hidden", "false");
+    this.settlement.classList.add("is-visible");
   }
 
   destroy() {
@@ -288,7 +416,7 @@ export class LevelThreeGame {
 
     if (intent > 0) {
       const release = smoothstep(0.12, 0.86, this.progress);
-      const speed = lerp(0.052, 0.098, release);
+      const speed = lerp(0.058, 0.104, release);
       this.progress = clamp(this.progress + speed * dt);
       this.blueProgress = Math.max(this.blueProgress, this.progress);
       travelDirection = 1;
@@ -326,12 +454,17 @@ export class LevelThreeGame {
     const effort = 1 - smoothstep(0.08, 0.72, progress);
     const moving = direction > 0;
     const slowing = direction < 0;
+    // Heavy water in the yellow zone reads as weight, not jitter: slow low-frequency
+    // sway + a downward droop tugged by the current. It lightens toward the blue.
+    const bobPeriod = lerp(540, 205, progress);
+    const bobAmp = lerp(2.4, 1.5, progress);
     const swimBob = moving
-      ? Math.sin(time / lerp(180, 115, progress)) * lerp(3.8, 1.8, progress)
-      : Math.sin(time / 620) * 1.2;
-    const actorY = PATH_TOP - 4 + swimBob + effort * 3;
+      ? Math.sin(time / bobPeriod) * bobAmp
+      : Math.sin(time / 780) * 1.1;
+    const drag = effort * (5 + Math.sin(time / 900) * 1.8);
+    const actorY = PATH_TOP - 4 + swimBob + drag;
     const frame = moving
-      ? 2 + (Math.floor(time / lerp(190, 125, progress)) % 2)
+      ? 2 + (Math.floor(time / lerp(235, 128, progress)) % 2)
       : slowing
         ? 1
         : Math.floor(time / 760) % 2;
@@ -376,13 +509,16 @@ export class LevelThreeGame {
         ? 0
         : clamp((blueFront - item.x) / 145);
 
+      item.element.style.setProperty("--char-rgb", mixTriplet(INK_SILT, INK_BLUE, blueLevel));
       item.element.style.setProperty("--reveal", clamp(reveal, 0.06, 1).toFixed(3));
       item.element.style.setProperty("--sink", sink.toFixed(3));
-      item.element.style.setProperty("--blue-level", blueLevel.toFixed(3));
       item.element.classList.toggle("is-passed", passed);
     });
 
     if (activeIndex !== this.lastActiveIndex) {
+      if (activeIndex > this.lastActiveIndex && this.lastActiveIndex >= 0) {
+        journey.step(activeIndex - this.lastActiveIndex);
+      }
       if (this.lastActiveIndex >= 0) {
         this.pathChars[this.lastActiveIndex]?.element.classList.remove("is-current");
       }
@@ -400,23 +536,21 @@ export class LevelThreeGame {
         ? 0
         : clamp((blueFront - x - wave) / 120);
       const proximity = 1 - smoothstep(90, 300, Math.abs(x - worldX));
-      element.style.setProperty("--blue-level", level.toFixed(3));
+      element.style.setProperty("--char-rgb", mixTriplet(INK_SILT, INK_BLUE, level));
       element.style.setProperty("--wake", proximity.toFixed(3));
     });
   }
 
   updatePaper() {
-    const paleBlue = [158, 196, 214];
-    const seaBlue = [23, 107, 155];
-    const paper = [247, 246, 242];
-    const firstPhase = smoothstep(0.12, 0.76, this.blueProgress);
-    const finalPhase = smoothstep(0.76, 1, this.blueProgress);
+    // Opens muddy ochre, sweeps to mist, then deep sea — one continuous ramp.
+    const firstPhase = smoothstep(0, 0.7, this.blueProgress);
+    const finalPhase = smoothstep(0.55, 1, this.blueProgress);
     const middle = [
-      lerp(paper[0], paleBlue[0], firstPhase),
-      lerp(paper[1], paleBlue[1], firstPhase),
-      lerp(paper[2], paleBlue[2], firstPhase),
+      lerp(SILT_PAPER[0], MIST_PAPER[0], firstPhase),
+      lerp(SILT_PAPER[1], MIST_PAPER[1], firstPhase),
+      lerp(SILT_PAPER[2], MIST_PAPER[2], firstPhase),
     ];
-    this.paper.style.backgroundColor = mixColor(middle, seaBlue, finalPhase);
+    this.paper.style.backgroundColor = mixColor(middle, SEA_PAPER, finalPhase);
   }
 
   showHint() {

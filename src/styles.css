@@ -1366,14 +1366,15 @@ button {
   width: 31px;
   height: 43px;
   line-height: 43px;
+  color: rgb(var(--char-rgb, 74 58 22) / var(--sea-alpha));
   opacity: calc(0.48 + var(--wake, 0) * 0.52);
   filter: blur(calc((1 - var(--wake, 0)) * 0.35px));
   rotate: none;
+  transition: color 220ms linear;
 }
 
 .l3-sea-char::after {
-  color: #176b9b;
-  text-shadow: 0 0 12px rgba(41, 103, 145, 0.18);
+  content: none;
 }
 
 .l3-text-path {
@@ -1390,7 +1391,7 @@ button {
   width: 34px;
   height: 48px;
   place-items: start center;
-  color: rgb(32 32 30 / calc(0.08 + var(--reveal, 0.06) * 0.92));
+  color: rgb(var(--char-rgb, 74 58 22) / calc(0.08 + var(--reveal, 0.06) * 0.92));
   font-size: 28px;
   font-weight: 600;
   line-height: 38px;
@@ -1403,22 +1404,14 @@ button {
     scale(calc(0.92 + var(--reveal, 0.06) * 0.08));
   transform-origin: center 30px;
   transition:
-    color 180ms linear,
+    color 220ms linear,
     filter 160ms linear,
     opacity 180ms linear,
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .l3-path-char::after {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: start center;
-  color: #176b9b;
-  content: attr(data-char);
-  line-height: 38px;
-  opacity: var(--blue-level, 0);
-  text-shadow: 0 0 13px rgba(23, 107, 155, 0.16);
+  content: none;
 }
 
 .l3-path-char.is-current {
@@ -1459,65 +1452,76 @@ button {
 .l3-moon {
   position: absolute;
   z-index: 4;
-  top: 112px;
-  right: 40px;
-  width: 44px;
-  height: 44px;
-  background: url("/assets/moon/moon-glow-v1.png") center / contain no-repeat;
-  filter: saturate(0.72) contrast(0.98);
-  opacity: calc(0.72 + var(--l3-progress, 0) * 0.28);
+  top: 104px;
+  right: 44px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 36%,
+    #fcf0c4 0%,
+    #f3dd95 38%,
+    #e8c668 70%,
+    #d8ad4a 100%
+  );
+  box-shadow:
+    0 0 18px 4px rgba(240, 214, 138, 0.34),
+    0 0 44px 13px rgba(232, 199, 110, 0.18);
+  opacity: calc(0.78 + var(--l3-progress, 0) * 0.22);
   transition:
-    top 1600ms cubic-bezier(0.22, 1, 0.36, 1),
-    right 1600ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1600ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform 1600ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 900ms ease-out;
 }
 
 .l3-moon-reflection {
   position: absolute;
   z-index: 1;
-  top: 174px;
-  right: 51px;
-  width: 21px;
-  height: 280px;
-  background:
-    linear-gradient(
-      180deg,
-      rgb(232 217 168 / 0%) 0%,
-      rgb(232 217 168 / 38%) 24%,
-      rgb(232 217 168 / 15%) 58%,
-      rgb(232 217 168 / 0%) 100%
-    );
-  filter: blur(3px);
-  opacity: calc(var(--l3-progress, 0) * 0.88);
-  transform: scaleY(calc(0.4 + var(--l3-progress, 0) * 0.6));
+  top: 150px;
+  right: 56px;
+  width: 22px;
+  height: 300px;
+  background: linear-gradient(
+    180deg,
+    rgb(244 224 150 / 0%) 0%,
+    rgb(244 224 150 / 40%) 14%,
+    rgb(240 214 138 / 22%) 50%,
+    rgb(232 199 110 / 8%) 80%,
+    rgb(232 199 110 / 0%) 100%
+  );
+  filter: blur(4px);
+  opacity: calc(var(--l3-progress, 0) * 0.9);
+  transform: scaleY(calc(0.45 + var(--l3-progress, 0) * 0.55));
   transform-origin: top;
+  mix-blend-mode: screen;
   transition:
-    right 1600ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1600ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform 1600ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 1200ms ease-out;
 }
 
 .l3-moon-reflection::after {
   position: absolute;
-  inset: 0 -16px;
+  inset: 0;
   background: repeating-linear-gradient(
     180deg,
-    transparent 0 13px,
-    rgb(245 228 168 / 32%) 14px 16px,
-    transparent 17px 25px
+    transparent 0 16px,
+    rgb(250 236 176 / 18%) 18px 21px,
+    transparent 23px 34px
   );
   content: "";
-  mix-blend-mode: screen;
+  animation: l3-reflection-ripple 3.6s linear infinite;
+}
+
+@keyframes l3-reflection-ripple {
+  from { transform: translateY(0); }
+  to { transform: translateY(34px); }
 }
 
 .l3-moon.is-settled {
-  top: 86px;
-  right: 184px;
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
 .l3-moon-reflection.is-settled {
-  right: 195px;
-  transform: scaleY(0.82);
+  transform: scaleY(0.96);
 }
 
 .level-three-end {
@@ -1570,6 +1574,142 @@ button {
     hue-rotate(158deg)
     brightness(85%)
     contrast(101%);
+}
+
+.l3-settlement {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 322px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 0 28px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition:
+    opacity 1100ms ease-out,
+    transform 1100ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.l3-settlement.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.l3-settle-lead {
+  margin: 0;
+  color: rgb(247 246 242 / 96%);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 34px;
+}
+
+.l3-settle-arc {
+  margin: 0;
+  color: rgb(247 246 242 / 70%);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.l3-settle-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 16px;
+  align-items: baseline;
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.l3-settle-stats dt {
+  color: rgb(247 246 242 / 56%);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-align: right;
+}
+
+.l3-settle-stats dd {
+  margin: 0;
+  color: rgb(247 246 242 / 86%);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+.l3-settle-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.l3-share-button,
+.l3-replay-button {
+  height: 44px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.l3-share-button {
+  padding: 0 22px;
+  border: none;
+  border-radius: 4px;
+  background: #e8d9a8;
+  color: #074a73;
+  box-shadow: 0 2px 8px rgb(7 74 115 / 16%);
+  transition:
+    transform 100ms ease-out,
+    filter 120ms ease-out;
+}
+
+.l3-share-button:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.l3-share-button:active {
+  transform: scale(0.96);
+}
+
+.l3-replay-button {
+  position: relative;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: rgb(247 246 242 / 78%);
+}
+
+.l3-replay-button::after {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  left: 12px;
+  height: 1px;
+  background: rgb(247 246 242 / 70%);
+  content: "";
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+.l3-replay-button:hover::after,
+.l3-replay-button:focus-visible::after {
+  opacity: 1;
+}
+
+.l3-share-button:focus-visible,
+.l3-replay-button:focus-visible {
+  outline: 2px solid rgb(247 246 242 / 70%);
+  outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {

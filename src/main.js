@@ -4,6 +4,7 @@ import { InputController } from "./input.js";
 import { LEVEL_ONE, STAGE, STATES } from "./level-one.js";
 import { LevelTwoGame } from "./level-two-game.js";
 import { LevelThreeGame } from "./level-three-game.js";
+import { journey } from "./journey.js";
 
 class LevelOneGame {
   constructor() {
@@ -657,6 +658,7 @@ class LevelOneGame {
     const currentCell = Math.round(currentCol);
     if (previousCell === currentCell) return;
 
+    journey.step(Math.abs(currentCell - previousCell));
     const step = currentCell > previousCell ? 1 : -1;
     for (let col = previousCell + step; step > 0 ? col <= currentCell : col >= currentCell; col += step) {
       if (col >= 0 && col < LEVEL_ONE.lines[this.row].length) {

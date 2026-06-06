@@ -7,6 +7,7 @@ import {
   getLine,
   getWrapTarget,
 } from "./level-two.js";
+import { journey } from "./journey.js";
 
 const VAST_BOOST = 1.32;
 
@@ -425,6 +426,7 @@ export class LevelTwoGame {
     const currentCell = Math.round(currentCol);
     if (previousCell === currentCell) return;
 
+    journey.step(Math.abs(currentCell - previousCell));
     const step = currentCell > previousCell ? 1 : -1;
     for (
       let col = previousCell + step;

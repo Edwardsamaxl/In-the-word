@@ -60,9 +60,13 @@ try {
   await sleep(450);
   await capture("l3-redesign-mid");
 
+  await evaluate("window.__journey && (window.__journey.startedAt = performance.now() - 107000, window.__journey.steps = 187)");
   await evaluate("window.__levelThree.finish()");
   await sleep(1900);
   await capture("l3-redesign-end");
+
+  await sleep(1400);
+  await capture("l3-redesign-settle");
 } finally {
   socket?.close();
   chrome.kill();
