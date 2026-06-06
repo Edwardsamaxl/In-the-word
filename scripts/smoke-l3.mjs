@@ -42,26 +42,71 @@ try {
 
   await command("Page.enable");
   await command("Runtime.enable");
-  await command("Page.navigate", { url: `${baseUrl}/?scene=l3` });
-  await sleep(1000);
 
-  const samples = [];
-  for (const delay of [1000, 6000, 11000]) {
-    await sleep(delay);
-    samples.push(await evaluate(`({
-      now: performance.now(),
-      startedAt: window.__levelThree?.startedAt,
-      finished: window.__levelThree?.finished,
-      actor: document.querySelector('#actor')?.style.transform,
-      endVisible: document.querySelector('#level-three-end')?.classList.contains('is-visible')
-    })`));
+  await command("Page.navigate", { url: `${baseUrl}/?scene=l2-action` });
+  await sleep(700);
+  const aligned = await actionLineLefts();
+  if (Math.max(...aligned) - Math.min(...aligned) > 1) {
+    throw new Error(`Action lines were not initially aligned: ${JSON.stringify(aligned)}`);
   }
 
-  const result = samples.at(-1);
+  await command("Page.navigate", { url: `${baseUrl}/?scene=l2-spear` });
+  await sleep(700);
+  const cocked = await actionLineLefts();
+  if (Math.abs(cocked[0] - cocked[2]) > 1 || cocked[1] > cocked[0] - 18) {
+    throw new Error(`Spear line did not pull back independently: ${JSON.stringify(cocked)}`);
+  }
+
+  await command("Page.navigate", { url: `${baseUrl}/?scene=l2-pierce` });
+  await sleep(2600);
+
+  const idleStart = await sample();
+  if (idleStart.entering || idleStart.progress !== 0 || idleStart.blueProgress !== 0) {
+    throw new Error(`Level two handoff did not settle at the level three start: ${JSON.stringify(idleStart)}`);
+  }
+  await sleep(1200);
+  const idleEnd = await sample();
+  if (idleStart.progress !== idleEnd.progress || idleEnd.blueProgress !== 0) {
+    throw new Error(`Level three moved without input: ${JSON.stringify({ idleStart, idleEnd })}`);
+  }
+
+  await command("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "ArrowRight",
+    code: "ArrowRight",
+    windowsVirtualKeyCode: 39,
+  });
+  await sleep(1500);
+  await command("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "ArrowRight",
+    code: "ArrowRight",
+    windowsVirtualKeyCode: 39,
+  });
+  const moved = await sample();
+  if (moved.progress <= 0 || moved.blueProgress <= 0) {
+    throw new Error(`Right input did not move or reveal blue: ${JSON.stringify(moved)}`);
+  }
+
+  await sleep(900);
+  const stopped = await sample();
+  if (Math.abs(stopped.progress - moved.progress) > 0.002) {
+    throw new Error(`Level three kept moving after release: ${JSON.stringify({ moved, stopped })}`);
+  }
+
+  await evaluate(`window.__levelThree.progress = 0.96`);
+  await command("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "ArrowRight",
+    code: "ArrowRight",
+    windowsVirtualKeyCode: 39,
+  });
+  await sleep(900);
+  const result = await sample();
   if (!result.finished || !result.endVisible) {
-    throw new Error(`Level three did not finish: ${JSON.stringify(samples)}`);
+    throw new Error(`Level three did not finish under player input: ${JSON.stringify(result)}`);
   }
-  console.log(JSON.stringify(samples));
+  console.log(JSON.stringify({ aligned, cocked, idleStart, idleEnd, moved, stopped, result }));
 } finally {
   socket?.close();
   chrome.kill();
@@ -102,6 +147,23 @@ async function evaluate(expression) {
     throw new Error(result.exceptionDetails.text || "Runtime evaluation failed.");
   }
   return result.result.value;
+}
+
+function sample() {
+  return evaluate(`({
+    progress: window.__levelThree?.progress,
+    blueProgress: window.__levelThree?.blueProgress,
+    entering: window.__levelThree?.entering,
+    finished: window.__levelThree?.finished,
+    actor: document.querySelector('#actor')?.style.transform,
+    endVisible: document.querySelector('#level-three-end')?.classList.contains('is-visible')
+  })`);
+}
+
+function actionLineLefts() {
+  return evaluate(`[5, 6, 7].map((row) =>
+    document.querySelector('.l2-line[data-row="' + row + '"]')?.getBoundingClientRect().left
+  )`);
 }
 
 function sleep(ms) {

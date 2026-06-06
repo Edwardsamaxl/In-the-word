@@ -40,6 +40,7 @@ button {
   display: grid;
   min-height: 100dvh;
   place-items: center;
+  visibility: visible;
   padding:
     max(8px, env(safe-area-inset-top))
     max(8px, env(safe-area-inset-right))
@@ -894,10 +895,10 @@ button {
 .l2-char.is-lit { animation: ink-bloom 480ms cubic-bezier(0.16, 1, 0.3, 1); }
 .l2-char.is-mooning { animation: moon-echo 900ms ease-in-out; }
 .l2-char.is-verdant { animation: verdant-bloom 1200ms ease-in-out; }
-.l2-char.is-spearing { animation: spear-drop 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.l2-char.is-spearing { color: var(--ink-spear); }
 .l2-char.is-pierce-glyph {
   transform-origin: left center;
-  animation: pierce-tense 900ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: pierce-tense 640ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .l2-char.is-checkpoint { color: var(--ink); }
 .l2-char.is-checkpoint::after {
@@ -933,38 +934,17 @@ button {
   transition: letter-spacing 980ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 刺去：镜头随之右摇（正文整体轻微左移），把视线推向文字海 */
-.poem-l2.is-pierce {
-  transition: transform 1100ms cubic-bezier(0.58, 0.04, 0.32, 1);
-  transform: translateX(-16px);
+/* 行动区始终作为一个三行整体排版，初始三行严格并列。 */
+.poem-l2 .l2-line[data-row="5"],
+.poem-l2 .l2-line[data-row="6"],
+.poem-l2 .l2-line[data-row="7"] {
+  transition: top 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 
-/* 方块化作「钢叉」：精灵锐化、并向刺出方向甩出一道尖锐墨痕 */
-.actor.is-piercing {
-  z-index: 6;
-}
-
-.actor.is-piercing .actor-sprite {
-  filter: contrast(1.3) saturate(0.32) brightness(1.12);
-}
-
-.actor.is-piercing::after {
-  content: "";
-  position: absolute;
-  top: 7px;
-  left: 9px;
-  width: 48px;
-  height: 3px;
-  background: linear-gradient(90deg,
-    rgba(58, 58, 54, 0) 0%,
-    rgba(58, 58, 54, 0.9) 58%,
-    rgba(40, 40, 36, 0) 100%);
-  border-radius: 2px;
-  transform-origin: left center;
-  transform: rotate(34deg);
-  filter: blur(0.4px);
-  pointer-events: none;
-  animation: spear-streak 1100ms cubic-bezier(0.58, 0.04, 0.32, 1) forwards;
+/* 行动区激活时三行作为同一个视觉组出现。 */
+.poem-l2[data-active-zone="action"] .l2-line[data-zone="action"] {
+  opacity: 1;
 }
 
 /* 文字海 */
@@ -1144,16 +1124,8 @@ button {
 }
 
 @keyframes pierce-tense {
-  0%   { transform: scaleX(1) translateX(0); color: var(--ink); }
-  35%  { transform: scaleX(1.7) translateX(3px); color: var(--ink-spear); }
-  100% { transform: scaleX(2.6) translateX(12px); color: var(--ink-spear); opacity: 0.82; }
-}
-
-@keyframes spear-streak {
-  0%   { opacity: 0; width: 10px; }
-  22%  { opacity: 1; width: 48px; }
-  78%  { opacity: 0.95; width: 54px; }
-  100% { opacity: 0; width: 30px; }
+  0%, 100% { transform: translateX(0); color: var(--ink); }
+  45% { transform: translateX(3px); color: var(--ink-spear); }
 }
 
 @keyframes sea-bob {
@@ -1209,8 +1181,8 @@ button {
 }
 
 .game-stage.is-level-three .control-layer {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .l3-sea-field {

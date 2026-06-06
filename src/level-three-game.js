@@ -1,6 +1,7 @@
 const STAGE_WIDTH = 412;
-const JOURNEY_DURATION = 16000;
 const ACTOR_SIZE = 22;
+const MOVE_SPEED = 0.09;
+const ENTRY_DRIFT_DURATION = 1100;
 const SEA_ROWS = 11;
 const SEA_COLS = 22;
 const CELL_WIDTH = 33;
@@ -14,7 +15,7 @@ const SEA_TEXT =
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
 export class LevelThreeGame {
-  constructor(refs) {
+  constructor(refs, handoffDetail = {}) {
     this.stage = refs.stage;
     this.scene = refs.scene;
     this.actor = refs.actor;
@@ -25,9 +26,14 @@ export class LevelThreeGame {
 
     this.disposed = false;
     this.finished = false;
-    this.startedAt = null;
+    this.lastFrame = performance.now();
+    this.progress = 0;
+    this.blueProgress = 0;
+    this.holdLeft = false;
+    this.holdRight = false;
+    this.entering = handoffDetail.entry === "ink-sea";
+    this.entryStartedAt = null;
     this.cells = [];
-    this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     this.renderSea();
     this.activate();
@@ -90,26 +96,41 @@ export class LevelThreeGame {
     this.endLine.classList.remove("is-visible");
     this.actor.style.opacity = "1";
     this.actor.dataset.direction = "right";
-    this.actor.dataset.sheet = "move";
+    this.actor.dataset.sheet = "motion";
+    this.actor.dataset.frame = "0";
     this.actor.dataset.pose = "auto";
     this.paper.style.backgroundColor = "#f5f4ef";
+    if (this.entering) {
+      this.updateEntry(0, performance.now());
+    } else {
+      this.update(0, performance.now(), 0);
+    }
   }
 
   reset() {
     const shouldRestart = this.finished;
-    this.startedAt = null;
     this.finished = false;
+    this.progress = 0;
+    this.blueProgress = 0;
+    this.holdLeft = false;
+    this.holdRight = false;
+    this.entering = false;
+    this.entryStartedAt = null;
+    this.lastFrame = performance.now();
     this.stage.classList.remove("is-level-three-complete");
     this.endLine.classList.remove("is-visible");
     this.actor.style.opacity = "1";
     this.seaField.style.transform = "translate3d(0, 0, 0)";
     this.paper.style.backgroundColor = "#f5f4ef";
     this.cells.forEach(({ element }) => element.style.setProperty("--blue-level", "0"));
+    this.update(0, performance.now(), 0);
     if (shouldRestart) requestAnimationFrame((time) => this.tick(time));
   }
 
   finish() {
-    this.update(1, performance.now());
+    this.progress = 1;
+    this.blueProgress = 1;
+    this.update(1, performance.now(), 1);
     this.finished = true;
     this.actor.style.opacity = "0";
     this.endLine.classList.add("is-visible");
@@ -122,15 +143,45 @@ export class LevelThreeGame {
     this.scene.setAttribute("aria-hidden", "true");
   }
 
+  handleIntent(intent) {
+    if (intent === "reset") {
+      this.reset();
+      return;
+    }
+    if (this.disposed || this.finished || this.entering) return;
+
+    if (intent === "hold-left") this.holdLeft = true;
+    if (intent === "release-left") this.holdLeft = false;
+    if (intent === "hold-right") this.holdRight = true;
+    if (intent === "release-right") this.holdRight = false;
+  }
+
   tick(time) {
     if (this.disposed || this.finished) return;
-    if (this.startedAt === null) this.startedAt = time;
+    if (this.entering) {
+      if (this.entryStartedAt === null) this.entryStartedAt = time;
+      const entryProgress = clamp((time - this.entryStartedAt) / ENTRY_DRIFT_DURATION);
+      this.updateEntry(entryProgress, time);
+      if (entryProgress >= 1) {
+        this.entering = false;
+        this.lastFrame = time;
+        this.update(0, time, 0);
+      }
+      requestAnimationFrame((nextTime) => this.tick(nextTime));
+      return;
+    }
 
-    const duration = this.reducedMotion ? 5000 : JOURNEY_DURATION;
-    const progress = clamp((time - this.startedAt) / duration);
-    this.update(progress, time);
+    const dt = Math.min((time - this.lastFrame) / 1000, 0.05);
+    this.lastFrame = time;
+    const direction = Number(this.holdRight) - Number(this.holdLeft);
 
-    if (progress >= 1) {
+    if (direction !== 0) {
+      this.progress = clamp(this.progress + direction * MOVE_SPEED * dt);
+      if (direction > 0) this.blueProgress = Math.max(this.blueProgress, this.progress);
+    }
+    this.update(this.progress, time, direction);
+
+    if (this.progress >= 1) {
       this.finish();
       return;
     }
@@ -138,24 +189,41 @@ export class LevelThreeGame {
     requestAnimationFrame((nextTime) => this.tick(nextTime));
   }
 
-  update(progress, time) {
+  updateEntry(progress, time) {
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const actorX = 311 + (28 - 311) * eased;
+    const actorY = 630 + (474 - 630) * eased + Math.sin(progress * Math.PI * 2) * 7;
+    const frame = 1 + (Math.floor(time / 180) % 3);
+
+    this.actor.dataset.sheet = "sink";
+    this.actor.dataset.frame = String(frame);
+    this.actor.style.transform = `translate3d(${actorX - ACTOR_SIZE / 2}px, ${actorY - ACTOR_SIZE}px, 0) scale(1.18)`;
+    this.seaField.style.transform = `translate3d(${-eased * 18}px, 0, 0)`;
+  }
+
+  update(progress, time, direction) {
     const actorX = 28 + progress * 418;
     const actorY = 474 + Math.sin(progress * Math.PI * 8) * 2;
     const seaShift = -progress * 86;
-    const frame = 2 + (Math.floor(time / 140) % 2);
+    const moving = direction !== 0;
+    const frame = moving ? 2 + (Math.floor(time / 140) % 2) : Math.floor(time / 720) % 2;
 
+    if (direction !== 0) {
+      this.actor.dataset.direction = direction < 0 ? "left" : "right";
+    }
+    this.actor.dataset.sheet = moving ? "move" : "motion";
     this.actor.dataset.frame = String(frame);
     this.actor.style.transform = `translate3d(${actorX - ACTOR_SIZE / 2}px, ${actorY - ACTOR_SIZE}px, 0) scale(1.18)`;
     this.seaField.style.transform = `translate3d(${seaShift}px, 0, 0)`;
 
-    const blueFront = progress * (STAGE_WIDTH + 210) - 42;
+    const blueFront = this.blueProgress * (STAGE_WIDTH + 210) - 42;
     this.cells.forEach(({ element, x, row, col }) => {
       const wave = Math.sin(row * 0.86 + col * 0.42) * 18;
       const level = clamp((blueFront - x - wave) / 92);
       element.style.setProperty("--blue-level", level.toFixed(3));
     });
 
-    const paperBlue = clamp((progress - 0.18) / 0.82) * 0.72;
+    const paperBlue = clamp((this.blueProgress - 0.18) / 0.82) * 0.72;
     const r = Math.round(245 + (231 - 245) * paperBlue);
     const g = Math.round(244 + (239 - 244) * paperBlue);
     const b = Math.round(239 + (244 - 239) * paperBlue);

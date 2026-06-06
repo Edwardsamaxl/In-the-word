@@ -203,20 +203,20 @@ class LevelOneGame {
     this.jumpY = entrance.value;
 
     const timeline = gsap.timeline();
-    timeline.to(paper, { opacity: 1, duration: 0.5, ease: "power1.out" });
+    timeline.to(paper, { opacity: 1, duration: 0.3, ease: "power1.out" });
 
     chars.forEach((char, index) => {
       timeline.to(
         char,
         { opacity: char.classList.contains("is-locked") ? 0.35 : 1, duration: 0.01 },
-        0.5 + index * 0.06,
+        0.3 + index * 0.03,
       );
     });
 
     timeline
-      .to(this.poem, { y: 2, duration: 0.08, ease: "power2.in" }, 1.98)
+      .to(this.poem, { y: 2, duration: 0.08, ease: "power2.in" }, 0.98)
       .to(this.poem, { y: 0, duration: 0.1, ease: "power3.out" })
-      .set(this.actor, { opacity: 1 }, 2.08)
+      .set(this.actor, { opacity: 1 }, 1.08)
       .to(entrance, {
         value: 0,
         duration: 0.32,
@@ -224,7 +224,7 @@ class LevelOneGame {
         onUpdate: () => {
           this.jumpY = entrance.value;
         },
-      }, 2.08)
+      }, 1.08)
       .to(entrance, {
         value: -4,
         duration: 0.08,
@@ -982,15 +982,24 @@ class LevelOneGame {
       else if (this.sinkProgress < 0.38) frame = 1;
       else if (this.sinkProgress < 0.58) frame = 2;
       else frame = 3;
+    } else if (this.actorPose === "jump-anticipation") {
+      sheet = "motion";
+      frame = 2;
     } else if (this.actorPose === "jump-rise") {
       sheet = "motion";
-      frame = 3;
+      frame = 4;
     } else if (this.actorPose === "jump-apex") {
       sheet = "motion";
       frame = 4;
     } else if (this.actorPose === "jump-fall") {
       sheet = "motion";
       frame = 5;
+    } else if (this.actorPose === "jump-land") {
+      sheet = "motion";
+      frame = 6;
+    } else if (this.actorPose === "jump-recover") {
+      sheet = "motion";
+      frame = 7;
     } else if (direction !== 0) {
       sheet = "move";
       frame = 2 + (Math.floor(time / 140) % 2);
@@ -1220,7 +1229,7 @@ const refsForL3 = () => ({
   paper: document.querySelector(".paper-layer"),
 });
 
-const startLevelThree = () => {
+const startLevelThree = (handoffDetail = {}) => {
   gsap.globalTimeline.clear();
   if (window.__levelThree) {
     window.__levelThree.destroy();
@@ -1230,20 +1239,20 @@ const startLevelThree = () => {
   }
   if (window.__levelOne) {
     window.__levelOne.disposed = true;
-    if (window.__levelOne.input) {
-      window.__levelOne.input.onIntent = () => {};
-    }
   }
   gsap.set(document.querySelector(".paper-layer"), { opacity: 1 });
-  window.__levelThree = new LevelThreeGame(refsForL3());
+  window.__levelThree = new LevelThreeGame(refsForL3(), handoffDetail);
+  if (window.__levelOne?.input) {
+    window.__levelOne.input.onIntent = (intent) => window.__levelThree?.handleIntent(intent);
+  }
 };
 
 window.__levelOne.stage.addEventListener("level-one-complete", (event) => {
   startLevelTwo(event.detail);
 });
 
-window.__levelOne.stage.addEventListener("level-two-complete", () => {
-  startLevelThree();
+window.__levelOne.stage.addEventListener("level-two-complete", (event) => {
+  startLevelThree(event.detail);
 });
 
 // QA shortcut: ?scene=l2-* hops directly into L2 without playing L1

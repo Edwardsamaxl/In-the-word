@@ -84,7 +84,15 @@ export class LevelTwoGame {
   destroy() {
     this.disposed = true;
     this.clearTimers();
-    gsap.killTweensOf([this.actor, this.moon, this.moonGlow, this.inkSeaEl, this.melonBall, this]);
+    gsap.killTweensOf([
+      this.actor,
+      this.moon,
+      this.moonGlow,
+      this.inkSeaEl,
+      this.melonBall,
+      ...this.actionLines(),
+      this,
+    ]);
     this.melonShadow?.remove();
     this.melonBall?.remove();
   }
@@ -116,9 +124,10 @@ export class LevelTwoGame {
 
   // 当前行撑开、其余行收紧（沿用第一关版式）。每次焦点行变化时重排所有行的 top。
   layoutLines(activeRow) {
+    const layoutFocus = getLine(activeRow).zone === "action" ? 5 : activeRow;
     LEVEL_TWO.lines.forEach((line) => {
       const el = this.poemL2.querySelector(`.l2-line[data-row="${line.row}"]`);
-      if (el) el.style.top = `${rowTopOf(line.row, activeRow)}px`;
+      if (el) el.style.top = `${rowTopOf(line.row, layoutFocus)}px`;
     });
   }
 
@@ -244,11 +253,22 @@ export class LevelTwoGame {
       return;
     }
 
-    if (scene === "l2-pierce") {
-      this.row = 7;
-      this.col = 0;
+    if (scene === "l2-spear") {
+      this.row = 6;
+      this.col = 4;
       this.updateActiveZone("action");
       this.triggerSeaSide();
+      this.triggerSpear(4);
+      return;
+    }
+
+    if (scene === "l2-pierce") {
+      this.row = 7;
+      this.col = 7;
+      this.updateActiveZone("action");
+      this.triggerSeaSide();
+      this.triggerSpear(4);
+      this.triggerPierce();
       return;
     }
   }
@@ -285,7 +305,7 @@ export class LevelTwoGame {
 
   reset() {
     this.clearTimers();
-    gsap.killTweensOf([this.actor, this.moon, this.moonGlow, this.inkSeaEl, this]);
+    gsap.killTweensOf([this.actor, this.moon, this.moonGlow, this.inkSeaEl, this.melonBall, this]);
     this.cancelWatermelon();
     this.clearBulletTime();
     this.bulletTimer = null;
@@ -318,7 +338,14 @@ export class LevelTwoGame {
     this.poemL2
       .querySelectorAll(".l2-line")
       .forEach((l) => l.classList.remove("is-deepblue", "is-pierced"));
-    this.poemL2.classList.remove("is-pierce");
+    this.poemL2.classList.remove(
+      "is-pierce",
+      "is-spear-cocked",
+      "is-spear-pull",
+      "is-spear-thrust",
+    );
+    gsap.killTweensOf(this.actionLines());
+    gsap.set(this.actionLines(), { x: 0 });
     this.actor.classList.remove("is-piercing");
     this.poemL2.dataset.activeZone = "sky";
     this.poemL2.classList.add("is-entering");
@@ -327,6 +354,8 @@ export class LevelTwoGame {
     this.inkSeaEl.querySelectorAll(".ink-sea-cell").forEach((c) => c.classList.remove("is-landed"));
     this.moon.classList.remove("is-glowing", "is-silvered");
     this.moonGlow.classList.remove("is-active", "is-silvered");
+    this.melonBall.classList.remove("is-visible");
+    gsap.set(this.melonBall, { opacity: 0, clearProps: "transform" });
     this.stage.classList.remove("is-paper-deepblue", "is-paper-verdant", "is-paper-sea");
     this.setHint("");
 
@@ -593,7 +622,7 @@ export class LevelTwoGame {
     const endX = STAGE_L2.gridLeft + target.col * STAGE_L2.cellWidth + STAGE_L2.cellWidth / 2;
     const endY = rowTopOf(target.row, target.row);
 
-    // 一颗西瓜球从右上方砸到精灵头顶，再贴着它把它一路推向行动区行首「少年」入口。
+    // 西瓜只负责落下撞击；命中后留在原地，精灵独立被砸飞到行动区入口。
     this.melonBall.style.left = `${startX}px`;
     this.melonBall.style.top = `${startY - STAGE_L2.actorSize}px`;
     gsap.set(this.melonBall, { x: 130, y: -196, xPercent: -50, yPercent: -50, opacity: 1, scale: 1, rotation: 0 });
@@ -616,28 +645,41 @@ export class LevelTwoGame {
         this.actorPose = "fall";
         this.setActiveRow(target.row);
       })
-      .to(this.melonBall, {
-        x: endX - startX + 11,
-        y: endY - startY,
-        rotation: 330,
-        duration: STAGE_L2.smashDuration,
-        ease: "power3.in",
-        onComplete: () => {
-          gsap.to(this.melonBall, {
-            opacity: 0,
-            scale: 0.7,
-            duration: 0.22,
-            ease: "power1.out",
-            onComplete: () => this.melonBall.classList.remove("is-visible"),
-          });
+      .addLabel("impact")
+      .to(
+        this.melonBall,
+        {
+          y: 8,
+          scaleX: 1.18,
+          scaleY: 0.72,
+          rotation: 104,
+          duration: 0.08,
+          ease: "power2.out",
         },
-      })
+        "impact",
+      )
+      .to(
+        this.melonBall,
+        {
+          y: 18,
+          opacity: 0,
+          scaleX: 0.76,
+          scaleY: 0.76,
+          rotation: 126,
+          duration: 0.22,
+          ease: "power1.out",
+          onComplete: () => {
+            this.melonBall.classList.remove("is-visible");
+          },
+        },
+        "impact+=0.08",
+      )
       .to(
         t,
         {
           p: 1,
           duration: STAGE_L2.smashDuration,
-          ease: "power3.in",
+          ease: "power3.out",
           onUpdate: () => {
             const p = t.p;
             this.overrideActorX = startX + (endX - startX) * p;
@@ -654,7 +696,7 @@ export class LevelTwoGame {
             this.state = STATES_L2.PLAYING;
           },
         },
-        "<",
+        "impact",
       );
   }
 
@@ -795,7 +837,15 @@ export class LevelTwoGame {
   triggerSpear(col) {
     if (this.triggerOnce.has(`spear:${col}`)) return;
     this.triggerOnce.add(`spear:${col}`);
-    this.enterBulletTime(undefined, 1200);
+    this.poemL2.classList.add("is-spear-cocked");
+    const middleLine = this.getLineElement(6);
+    if (middleLine) {
+      gsap.to(middleLine, {
+        x: -24,
+        duration: 0.22,
+        ease: "power2.inOut",
+      });
+    }
     this.getChar(6, col)?.classList.add("is-spearing");
   }
 
@@ -809,12 +859,8 @@ export class LevelTwoGame {
     this.holdRight = false;
     this.setHint(LEVEL_TWO.hints.pierce);
 
-    // 正文整体向左平移（镜头右摇向文字海），「刺去」整行张开，方块化作钢叉扎进海里。
-    this.poemL2.classList.add("is-pierce");
-    this.actor.classList.add("is-piercing");
-    const row7 = this.poemL2.querySelector('.l2-line[data-row="7"]');
-    row7?.classList.add("is-pierced");
-    LEVEL_TWO.triggers.pierce.cols.forEach((c) => this.getChar(7, c)?.classList.add("is-pierce-glyph"));
+    // 三行是同一个钢叉状态机：并列 → 中行后退 → 整体后拉 → 整体前刺 → 命中飞出。
+    this.poemL2.classList.add("is-pierce", "is-spear-pull");
 
     const startX = this.actorXBase();
     const startY = this.actorYBase();
@@ -822,33 +868,62 @@ export class LevelTwoGame {
     const targetX = sea.left + sea.cellWidth / 2;
     const targetY = sea.top + sea.rowHeight - 6;
 
-    const railX = startX + STAGE_L2.pierceDistance * 0.5;
+    const topLine = this.getLineElement(5);
+    const middleLine = this.getLineElement(6);
+    const bottomLine = this.getLineElement(7);
+    const outerLines = [topLine, bottomLine].filter(Boolean);
+    const allLines = [topLine, middleLine, bottomLine].filter(Boolean);
     const t = { p: 0 };
 
-    gsap.to(t, {
-      p: 1,
-      duration: STAGE_L2.pierceDuration,
-      ease: "power2.inOut",
-      onUpdate: () => {
-        const p = t.p;
-        if (p < 0.34) {
-          const k = p / 0.34;
-          this.overrideActorX = startX + (railX - startX) * k;
-          this.overrideActorY = startY;
-        } else {
-          const k = (p - 0.34) / 0.66;
-          this.overrideActorX = railX + (targetX - railX) * k;
-          this.overrideActorY = startY + (targetY - startY) * k - Math.sin(k * Math.PI) * 26;
-        }
-      },
-      onComplete: () => {
-        this.overrideActorX = targetX;
-        this.overrideActorY = targetY;
-        this.actor.classList.remove("is-piercing");
-        this.state = STATES_L2.LANDED_SEA;
-        this.onLandedSea();
-      },
-    });
+    gsap.killTweensOf(allLines);
+    gsap
+      .timeline()
+      .add(() => {
+        this.poemL2.classList.add("is-spear-pull");
+      }, 0)
+      .to(outerLines, {
+        x: -22,
+        duration: 0.24,
+        ease: "power2.in",
+      }, 0)
+      .to(middleLine, {
+        x: -46,
+        duration: 0.24,
+        ease: "power2.in",
+      }, 0)
+      .add(() => {
+        this.poemL2.classList.remove("is-spear-pull");
+        this.poemL2.classList.add("is-spear-thrust");
+      }, 0.24)
+      .to(outerLines, {
+        x: 96,
+        duration: 0.15,
+        ease: "power4.in",
+      }, 0.24)
+      .to(middleLine, {
+        x: 72,
+        duration: 0.15,
+        ease: "power4.in",
+      }, 0.24)
+      .add(() => {
+        this.actorPose = "fall";
+      }, 0.39)
+      .to(t, {
+        p: 1,
+        duration: 0.82,
+        ease: "power2.out",
+        onUpdate: () => {
+          const p = t.p;
+          this.overrideActorX = startX + (targetX - startX) * p;
+          this.overrideActorY = startY + (targetY - startY) * p - Math.sin(p * Math.PI) * 42;
+        },
+        onComplete: () => {
+          this.overrideActorX = targetX;
+          this.overrideActorY = targetY;
+          this.state = STATES_L2.LANDED_SEA;
+          this.onLandedSea();
+        },
+      }, 0.39);
   }
 
   onLandedSea() {
@@ -862,14 +937,11 @@ export class LevelTwoGame {
     firstCell?.classList.add("is-landed");
 
     this.setHint(LEVEL_TWO.hints.landed);
-    this.setTimer(() => {
-      if (this.disposed || this.state !== STATES_L2.LANDED_SEA) return;
-      this.stage.dispatchEvent(
-        new CustomEvent("level-two-complete", {
-          detail: { entry: "ink-sea" },
-        }),
-      );
-    }, 1800);
+    this.stage.dispatchEvent(
+      new CustomEvent("level-two-complete", {
+        detail: { entry: "ink-sea" },
+      }),
+    );
   }
 
   updateActiveZone(zone) {
@@ -949,11 +1021,20 @@ export class LevelTwoGame {
   }
 
   actorYBase() {
-    return rowTopOf(this.row) + this.entryY + this.jumpY;
+    const layoutFocus = getLine(this.row).zone === "action" ? 5 : this.row;
+    return rowTopOf(this.row, layoutFocus) + this.entryY + this.jumpY;
   }
 
   getChar(row, col) {
     return this.poemL2.querySelector(`.l2-char[data-row="${row}"][data-col="${col}"]`);
+  }
+
+  getLineElement(row) {
+    return this.poemL2.querySelector(`.l2-line[data-row="${row}"]`);
+  }
+
+  actionLines() {
+    return [5, 6, 7].map((row) => this.getLineElement(row)).filter(Boolean);
   }
 
   setHint(text) {
