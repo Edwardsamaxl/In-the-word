@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>第一关排版方向</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
+        --paper: #f7f6f2;
+        --canvas: #deddd7;
+        --ink: #20201e;
+        --muted: #8b8981;
+        --hairline: rgb(32 32 30 / 14%);
+        --warm: #a07738;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 1440px;
+        margin: 0;
+        color: var(--ink);
+        background: var(--canvas);
+      }
+
+      .board {
+        width: 1440px;
+        min-height: 980px;
+        margin: 0 auto;
+        padding: 42px 54px 54px;
+      }
+
+      .board-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        font-family: Inter, "PingFang SC", sans-serif;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        letter-spacing: -0.03em;
+      }
+
+      .board-header p,
+      .source {
+        margin: 0;
+        color: #6f6e69;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .source {
+        max-width: 420px;
+        text-align: right;
+      }
+
+      .options {
+        display: grid;
+        grid-template-columns: repeat(3, 412px);
+        gap: 46px;
+      }
+
+      .option {
+        position: relative;
+      }
+
+      .phone {
+        position: relative;
+        width: 412px;
+        height: 732px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 53% 39%, rgb(255 255 255 / 60%), transparent 36%),
+          var(--paper);
+        box-shadow: 0 18px 50px rgb(43 42 39 / 10%);
+      }
+
+      .option-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 18px;
+        font-family: Inter, "PingFang SC", sans-serif;
+      }
+
+      .option-label b {
+        font-size: 16px;
+      }
+
+      .option-label span {
+        color: #77756f;
+        font-size: 12px;
+      }
+
+      .poem {
+        position: absolute;
+        left: 74px;
+        top: 246px;
+        width: 264px;
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 50px;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      .poem-line {
+        display: grid;
+        grid-template-columns: repeat(12, 22px);
+      }
+
+      .poem-line span {
+        display: block;
+        width: 22px;
+        text-align: center;
+      }
+
+      .spirit {
+        position: absolute;
+        left: 72px;
+        top: 268px;
+        width: 24px;
+        height: 18px;
+        border-radius: 48% 45% 42% 50%;
+        background: #292925;
+        box-shadow:
+          -7px 5px 0 -4px #292925,
+          7px 4px 0 -4px #292925;
+        transform: rotate(-5deg);
+      }
+
+      .spirit::before,
+      .spirit::after {
+        position: absolute;
+        top: 7px;
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+        background: #f7f6f2;
+        content: "";
+      }
+
+      .spirit::before {
+        left: 8px;
+      }
+
+      .spirit::after {
+        right: 8px;
+      }
+
+      .restart {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        place-items: center;
+        color: #77756f;
+        border: 1px solid var(--hairline);
+        border-radius: 50%;
+        background: rgb(247 246 242 / 82%);
+      }
+
+      .restart svg {
+        width: 15px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.5;
+      }
+
+      /* A: editorial chapter */
+      .a .chapter {
+        position: absolute;
+        top: 29px;
+        left: 28px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .a .chapter-no {
+        color: var(--warm);
+        font-family: Georgia, serif;
+        font-size: 34px;
+        font-style: italic;
+        line-height: 1;
+      }
+
+      .a .chapter-copy {
+        padding-left: 14px;
+        border-left: 1px solid var(--hairline);
+      }
+
+      .a .title {
+        font-size: 17px;
+        letter-spacing: 0.12em;
+      }
+
+      .a .author {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+      }
+
+      .a .restart {
+        position: absolute;
+        top: 28px;
+        right: 28px;
+      }
+
+      .a .hint-block {
+        position: absolute;
+        top: 126px;
+        left: 74px;
+        width: 264px;
+        padding-top: 13px;
+        border-top: 1px solid var(--hairline);
+      }
+
+      .a .hint-label {
+        margin-bottom: 7px;
+        color: var(--warm);
+        font-family: Inter, "PingFang SC", sans-serif;
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+      }
+
+      .a .hint-copy {
+        margin: 0;
+        color: #6f6d67;
+        font-size: 14px;
+        line-height: 1.7;
+        letter-spacing: 0.07em;
+      }
+
+      .a .footnote {
+        position: absolute;
+        right: 28px;
+        bottom: 26px;
+        color: #aaa79f;
+        font-family: Inter, "PingFang SC", sans-serif;
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        writing-mode: vertical-rl;
+      }
+
+      /* B: product HUD */
+      .b .topbar {
+        position: absolute;
+        top: 22px;
+        left: 22px;
+        right: 22px;
+        display: grid;
+        grid-template-columns: 36px 1fr 36px;
+        align-items: center;
+      }
+
+      .b .level-index {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        color: #77756f;
+        border: 1px solid var(--hairline);
+        border-radius: 50%;
+        font-family: Inter, "PingFang SC", sans-serif;
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .b .work {
+        text-align: center;
+      }
+
+      .b .title {
+        font-size: 16px;
+        letter-spacing: 0.1em;
+      }
+
+      .b .author {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+      }
+
+      .b .hint-card {
+        position: absolute;
+        top: 102px;
+        left: 44px;
+        right: 44px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 54px;
+        padding: 11px 15px;
+        border: 1px solid rgb(32 32 30 / 9%);
+        border-radius: 14px;
+        background: rgb(255 255 255 / 48%);
+      }
+
+      .b .gesture {
+        color: var(--warm);
+        font-family: Inter, "PingFang SC", sans-serif;
+        font-size: 16px;
+        letter-spacing: -0.2em;
+      }
+
+      .b .hint-card p {
+        margin: 0;
+        color: #6f6d67;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+      }
+
+      .b .hint-card small {
+        display: block;
+        margin-top: 3px;
+        color: #aaa79f;
+        font-family: Inter, "PingFang SC", sans-serif;
+        font-size: 9px;
+        letter-spacing: 0.05em;
+      }
+
+      .b .poem {
+        top: 234px;
+      }
+
+      .b .spirit {
+        top: 256px;
+      }
+
+      .b .progress {
+        position: absolute;
+        left: 74px;
+        right: 74px;
+        bottom: 32px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: Inter, "PingFang SC", sans-serif;
+      }
+
+      .b .progress span {
+        color: #aaa79f;
+        font-size: 9px;
+      }
+
+      .b .progress-track {
+        flex: 1;
+        height: 1px;
+        background: var(--hairline);
+      }
+
+      .b .progress-track::before {
+        display: block;
+        width: 18%;
+        height: 1px;
+        background: #706f69;
+        content: "";
+      }
+
+      /* C: immersive manuscript */
+      .c .mast {
+        position: absolute;
+        top: 25px;
+        left: 28px;
+        right: 28px;
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+      }
+
+      .c .seal {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        color: #95564b;
+        border: 1px solid rgb(149 86 75 / 46%);
+        font-size: 10px;
+        line-height: 1.05;
+        text-align: center;
+      }
+
+      .c .restart {
+        border-color: transparent;
+        background: transparent;
+      }
+
+      .c .vertical-title {
+        position: absolute;
+        top: 92px;
+        left: 29px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        writing-mode: vertical-rl;
+      }
+
+      .c .title {
+        font-size: 17px;
+        letter-spacing: 0.12em;
+      }
+
+      .c .author {
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+      }
+
+      .c .poem {
+        top: 208px;
+      }
+
+      .c .spirit {
+        top: 230px;
+      }
+
+      .c .hint-rule {
+        position: absolute;
+        left: 74px;
+        right: 74px;
+        bottom: 78px;
+        padding-top: 13px;
+        border-top: 1px solid var(--hairline);
+      }
+
+      .c .hint-rule p {
+        margin: 0;
+        color: #6f6d67;
+        font-size: 13px;
+        line-height: 1.7;
+        letter-spacing: 0.08em;
+      }
+
+      .c .hint-rule small {
+        position: absolute;
+        top: 15px;
+        right: 0;
+        color: #aaa79f;
+        font-family: Inter, "PingFang SC", sans-serif;
+        font-size: 8px;
+        letter-spacing: 0.12em;
+      }
+
+      .c .margin-dots {
+        position: absolute;
+        top: 174px;
+        right: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .c .margin-dots i {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: rgb(32 32 30 / 15%);
+      }
+
+      .c .margin-dots i:first-child {
+        background: var(--warm);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <header class="board-header">
+        <div>
+          <h1>《字里行间》第一关 · 排版方向</h1>
+          <p>同一内容与场景，只比较标题、操作、提示和留白组织。</p>
+        </div>
+        <p class="source">
+          参考逻辑：Monument Valley 的克制场景、Florence 的章节叙事、NYT Games 的产品化层级。
+        </p>
+      </header>
+
+      <section class="options">
+        <article class="option">
+          <div class="phone a">
+            <div class="chapter">
+              <span class="chapter-no">01</span>
+              <div class="chapter-copy">
+                <div class="title">静夜思</div>
+                <div class="author">李白 · 唐</div>
+              </div>
+            </div>
+            <button class="restart" aria-label="重新开始">
+              <svg viewBox="0 0 24 24"><path d="M5 8a8 8 0 1 1-1 7"/><path d="M5 4v4h4"/></svg>
+            </button>
+            <div class="hint-block">
+              <div class="hint-label">HOW TO MOVE</div>
+              <p class="hint-copy">按住屏幕左右两侧<br />让墨团在字间行走</p>
+            </div>
+            <div class="poem" aria-hidden="true">
+              <div class="poem-line"><span>床</span><span>前</span><span>明</span><span>月</span><span>光</span><span>，</span><span>疑</span><span>是</span><span>地</span><span>上</span><span>霜</span><span>。</span></div>
+              <div class="poem-line"><span>举</span><span>头</span><span>望</span><span>明</span><span>月</span><span>，</span><span>低</span><span>头</span><span>思</span><span>故</span><span>乡</span><span>。</span></div>
+            </div>
+            <div class="spirit"></div>
+            <div class="footnote">在字里行走 · 于行间阅读</div>
+          </div>
+          <div class="option-label"><b>A · 编辑章节式</b><span>更有作品感，信息密度适中</span></div>
+        </article>
+
+        <article class="option">
+          <div class="phone b">
+            <div class="topbar">
+              <div class="level-index">01</div>
+              <div class="work">
+                <div class="title">静夜思</div>
+                <div class="author">李白</div>
+              </div>
+              <button class="restart" aria-label="重新开始">
+                <svg viewBox="0 0 24 24"><path d="M5 8a8 8 0 1 1-1 7"/><path d="M5 4v4h4"/></svg>
+              </button>
+            </div>
+            <div class="hint-card">
+              <div class="gesture">‹ ›</div>
+              <p>按住左右两侧，开始行走<small>长按移动 · 松开停下</small></p>
+            </div>
+            <div class="poem" aria-hidden="true">
+              <div class="poem-line"><span>床</span><span>前</span><span>明</span><span>月</span><span>光</span><span>，</span><span>疑</span><span>是</span><span>地</span><span>上</span><span>霜</span><span>。</span></div>
+              <div class="poem-line"><span>举</span><span>头</span><span>望</span><span>明</span><span>月</span><span>，</span><span>低</span><span>头</span><span>思</span><span>故</span><span>乡</span><span>。</span></div>
+            </div>
+            <div class="spirit"></div>
+            <div class="progress">
+              <span>开始</span>
+              <div class="progress-track"></div>
+              <span>抵达行尾</span>
+            </div>
+          </div>
+          <div class="option-label"><b>B · 产品 HUD 式</b><span>最好懂、最完整，也最像成熟产品</span></div>
+        </article>
+
+        <article class="option">
+          <div class="phone c">
+            <div class="mast">
+              <div class="seal">字里<br />行间</div>
+              <button class="restart" aria-label="重新开始">
+                <svg viewBox="0 0 24 24"><path d="M5 8a8 8 0 1 1-1 7"/><path d="M5 4v4h4"/></svg>
+              </button>
+            </div>
+            <div class="vertical-title">
+              <div class="title">静夜思</div>
+              <div class="author">李白</div>
+            </div>
+            <div class="margin-dots"><i></i><i></i><i></i><i></i></div>
+            <div class="poem" aria-hidden="true">
+              <div class="poem-line"><span>床</span><span>前</span><span>明</span><span>月</span><span>光</span><span>，</span><span>疑</span><span>是</span><span>地</span><span>上</span><span>霜</span><span>。</span></div>
+              <div class="poem-line"><span>举</span><span>头</span><span>望</span><span>明</span><span>月</span><span>，</span><span>低</span><span>头</span><span>思</span><span>故</span><span>乡</span><span>。</span></div>
+            </div>
+            <div class="spirit"></div>
+            <div class="hint-rule">
+              <p>按住左右两侧<br />沿着诗句向前走</p>
+              <small>操作提示</small>
+            </div>
+          </div>
+          <div class="option-label"><b>C · 沉浸手稿式</b><span>最有东方气质，控件存在感最低</span></div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

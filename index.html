@@ -17,15 +17,25 @@
           <div class="paper-layer" aria-hidden="true"></div>
 
           <div class="text-layer">
-            <header class="page-header">
+            <header class="page-header page-header-l1">
+              <span class="level-index" aria-hidden="true">01</span>
               <p class="poem-meta">
                 <span class="poem-title">《静夜思》</span>
                 <span class="author">——李白</span>
               </p>
             </header>
 
+            <header id="page-header-l2" class="page-header page-header-l2" aria-hidden="true">
+              <p class="poem-meta">
+                <span class="poem-title">《故乡》</span>
+                <span class="author">——鲁迅</span>
+              </p>
+            </header>
+
             <p id="hint" class="hint" aria-live="polite"></p>
             <div id="poem" class="poem" aria-label="静夜思"></div>
+
+            <div id="poem-l2" class="poem-l2" aria-label="故乡" aria-hidden="true"></div>
 
             <div id="handoff" class="handoff" aria-hidden="true">
               <p class="handoff-line">深蓝的天空中</p>
@@ -36,6 +46,8 @@
           <div class="world-layer" aria-hidden="true">
             <div id="light" class="moonlight"></div>
             <div id="moon" class="moon"></div>
+            <div id="moon-glow" class="moon-glow" aria-hidden="true"></div>
+            <div id="ink-sea" class="ink-sea" aria-hidden="true"></div>
             <div id="page-wash" class="page-wash"></div>
           </div>
 
@@ -43,6 +55,124 @@
             <div id="trail" class="actor-trail"></div>
             <div id="actor" class="actor">
               <span class="actor-sprite"></span>
+            </div>
+          </div>
+
+          <div id="frost-overlay" class="frost-overlay" aria-hidden="true">
+            <div class="frost-tint"></div>
+            <div class="frost-flash"></div>
+            <div class="frost-shard frost-shard--tl">
+              <svg viewBox="0 0 270 270" aria-hidden="true">
+                <g fill="none" stroke="#dde7ee" stroke-width="0.7" stroke-linecap="round" opacity="0.95">
+                  <path d="M30 30 L218 30"/>
+                  <path d="M30 30 L30 218"/>
+                  <path d="M30 30 L172 110"/>
+                  <path d="M30 30 L110 172"/>
+                  <path d="M30 30 L156 156"/>
+                  <path d="M30 30 L222 72"/>
+                  <path d="M30 30 L72 222"/>
+                  <path d="M30 30 L138 96"/>
+                  <path d="M30 30 L96 138"/>
+                  <path d="M70 30 L75 22 M70 30 L75 38"/>
+                  <path d="M100 30 L106 20 M100 30 L106 40"/>
+                  <path d="M130 30 L138 18 M130 30 L138 42"/>
+                  <path d="M160 30 L168 20 M160 30 L168 40"/>
+                  <path d="M190 30 L198 22 M190 30 L198 38"/>
+                  <path d="M30 70 L22 75 M30 70 L38 75"/>
+                  <path d="M30 100 L20 106 M30 100 L40 106"/>
+                  <path d="M30 130 L18 138 M30 130 L42 138"/>
+                  <path d="M30 160 L20 168 M30 160 L40 168"/>
+                  <path d="M30 190 L22 198 M30 190 L38 198"/>
+                  <path d="M70 70 L62 76 M70 70 L76 62"/>
+                  <path d="M95 95 L86 102 M95 95 L102 86"/>
+                  <path d="M120 120 L110 128 M120 120 L128 110"/>
+                  <path d="M148 148 L138 158 M148 148 L158 138"/>
+                  <path d="M108 60 L116 56 M108 60 L112 68"/>
+                  <path d="M60 108 L56 116 M60 108 L68 112"/>
+                  <path d="M148 82 L156 78 M148 82 L152 90"/>
+                  <path d="M82 148 L78 156 M82 148 L90 152"/>
+                  <path d="M212 30 L202 24 M212 30 L202 36 M218 30 L218 20 M218 30 L218 40"/>
+                  <path d="M30 212 L24 202 M30 212 L36 202 M30 218 L20 218 M30 218 L40 218"/>
+                </g>
+              </svg>
+            </div>
+            <div class="frost-shard frost-shard--tr">
+              <svg viewBox="0 0 270 270" aria-hidden="true">
+                <g fill="none" stroke="#dde7ee" stroke-width="0.7" stroke-linecap="round" opacity="0.95">
+                  <path d="M30 30 L218 30"/>
+                  <path d="M30 30 L30 218"/>
+                  <path d="M30 30 L172 110"/>
+                  <path d="M30 30 L110 172"/>
+                  <path d="M30 30 L156 156"/>
+                  <path d="M30 30 L222 72"/>
+                  <path d="M30 30 L72 222"/>
+                  <path d="M30 30 L138 96"/>
+                  <path d="M30 30 L96 138"/>
+                  <path d="M70 30 L75 22 M70 30 L75 38"/>
+                  <path d="M100 30 L106 20 M100 30 L106 40"/>
+                  <path d="M130 30 L138 18 M130 30 L138 42"/>
+                  <path d="M160 30 L168 20 M160 30 L168 40"/>
+                  <path d="M30 70 L22 75 M30 70 L38 75"/>
+                  <path d="M30 100 L20 106 M30 100 L40 106"/>
+                  <path d="M30 130 L18 138 M30 130 L42 138"/>
+                  <path d="M30 160 L20 168 M30 160 L40 168"/>
+                  <path d="M70 70 L62 76 M70 70 L76 62"/>
+                  <path d="M95 95 L86 102 M95 95 L102 86"/>
+                  <path d="M120 120 L110 128 M120 120 L128 110"/>
+                </g>
+              </svg>
+            </div>
+            <div class="frost-shard frost-shard--bl">
+              <svg viewBox="0 0 270 270" aria-hidden="true">
+                <g fill="none" stroke="#dde7ee" stroke-width="0.7" stroke-linecap="round" opacity="0.95">
+                  <path d="M30 30 L218 30"/>
+                  <path d="M30 30 L30 218"/>
+                  <path d="M30 30 L172 110"/>
+                  <path d="M30 30 L110 172"/>
+                  <path d="M30 30 L156 156"/>
+                  <path d="M30 30 L222 72"/>
+                  <path d="M30 30 L72 222"/>
+                  <path d="M30 30 L138 96"/>
+                  <path d="M30 30 L96 138"/>
+                  <path d="M70 30 L75 22 M70 30 L75 38"/>
+                  <path d="M100 30 L106 20 M100 30 L106 40"/>
+                  <path d="M130 30 L138 18 M130 30 L138 42"/>
+                  <path d="M160 30 L168 20 M160 30 L168 40"/>
+                  <path d="M30 70 L22 75 M30 70 L38 75"/>
+                  <path d="M30 100 L20 106 M30 100 L40 106"/>
+                  <path d="M30 130 L18 138 M30 130 L42 138"/>
+                  <path d="M30 160 L20 168 M30 160 L40 168"/>
+                  <path d="M70 70 L62 76 M70 70 L76 62"/>
+                  <path d="M95 95 L86 102 M95 95 L102 86"/>
+                  <path d="M120 120 L110 128 M120 120 L128 110"/>
+                </g>
+              </svg>
+            </div>
+            <div class="frost-shard frost-shard--br">
+              <svg viewBox="0 0 270 270" aria-hidden="true">
+                <g fill="none" stroke="#dde7ee" stroke-width="0.7" stroke-linecap="round" opacity="0.95">
+                  <path d="M30 30 L218 30"/>
+                  <path d="M30 30 L30 218"/>
+                  <path d="M30 30 L172 110"/>
+                  <path d="M30 30 L110 172"/>
+                  <path d="M30 30 L156 156"/>
+                  <path d="M30 30 L222 72"/>
+                  <path d="M30 30 L72 222"/>
+                  <path d="M30 30 L138 96"/>
+                  <path d="M30 30 L96 138"/>
+                  <path d="M70 30 L75 22 M70 30 L75 38"/>
+                  <path d="M100 30 L106 20 M100 30 L106 40"/>
+                  <path d="M130 30 L138 18 M130 30 L138 42"/>
+                  <path d="M160 30 L168 20 M160 30 L168 40"/>
+                  <path d="M30 70 L22 75 M30 70 L38 75"/>
+                  <path d="M30 100 L20 106 M30 100 L40 106"/>
+                  <path d="M30 130 L18 138 M30 130 L42 138"/>
+                  <path d="M30 160 L20 168 M30 160 L40 168"/>
+                  <path d="M70 70 L62 76 M70 70 L76 62"/>
+                  <path d="M95 95 L86 102 M95 95 L102 86"/>
+                  <path d="M120 120 L110 128 M120 120 L128 110"/>
+                </g>
+              </svg>
             </div>
           </div>
 
