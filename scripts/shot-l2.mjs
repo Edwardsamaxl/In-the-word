@@ -7,7 +7,7 @@ const executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.e
 const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5173";
 const port = 9800 + Math.floor(Math.random() * 200);
 const userDataDir = await mkdtemp(path.join(tmpdir(), "in-the-word-shot-"));
-const scenes = ["l2-intro", "l2-sand", "l2-action", "l2-pierce"];
+const scenes = ["l2-intro", "l2-moon", "l2-sand", "l2-action", "l2-pierce"];
 
 const chrome = spawn(
   executablePath,

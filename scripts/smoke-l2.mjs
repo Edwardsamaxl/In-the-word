@@ -66,22 +66,42 @@ try {
 
   const renderCheck = await evaluate(`(() => {
     const lines = [...document.querySelectorAll('.l2-line')];
+    const header = document.querySelector('#page-header-l2');
+    const hint = document.querySelector('#hint');
     return {
       lineCount: lines.length,
       activeZone: document.querySelector('#poem-l2')?.dataset.activeZone,
-      headerText: document.querySelector('#page-header-l2')?.textContent.replace(/\\s+/g, ''),
+      headerText: header?.textContent.replace(/\\s+/g, ''),
+      headerTop: getComputedStyle(header).top,
+      headerDisplay: getComputedStyle(header).display,
+      hintTop: getComputedStyle(hint).top,
+      hintLabel: getComputedStyle(hint, '::before').content,
       moonLeft: document.querySelector('#moon').offsetLeft,
       moonTop: document.querySelector('#moon').offsetTop,
+      moonAsset: getComputedStyle(document.querySelector('#moon'), '::before').backgroundImage,
     };
   })()`);
-  assert(renderCheck.lineCount === 9, `Expected 9 L2 lines, got ${renderCheck.lineCount}`);
-  assert(renderCheck.headerText === "《故乡》——鲁迅", `Unexpected L2 header: ${renderCheck.headerText}`);
+  assert(renderCheck.lineCount === 8, `Expected 8 L2 lines, got ${renderCheck.lineCount}`);
+  assert(renderCheck.moonAsset.includes("moon-normal-v1.png"), `Expected normal moon asset, got ${renderCheck.moonAsset}`);
+  assert(renderCheck.headerText === "02《故乡》——鲁迅", `Unexpected L2 header: ${renderCheck.headerText}`);
+  assert(renderCheck.headerTop === "28px", `Expected L2 header at 28px, got ${renderCheck.headerTop}`);
+  assert(renderCheck.headerDisplay === "flex", `Expected L2 header flex layout, got ${renderCheck.headerDisplay}`);
+  assert(renderCheck.hintTop === "116px", `Expected L2 hint at 116px, got ${renderCheck.hintTop}`);
+  assert(renderCheck.hintLabel.includes("操作提示"), `Unexpected L2 hint label: ${renderCheck.hintLabel}`);
   assert(renderCheck.moonLeft === 308, `Expected moon at x=308, got ${renderCheck.moonLeft}`);
   assert(renderCheck.activeZone === "action", `Expected action zone, got ${renderCheck.activeZone}`);
 
-  // Trigger pierce by walking right on row 8
+  await evaluate(`window.__levelTwo.triggerMoonSuture()`);
+  const moonLit = await evaluate(`(() => ({
+    glowing: document.querySelector('#moon').classList.contains('is-glowing'),
+    asset: getComputedStyle(document.querySelector('#moon'), '::before').backgroundImage,
+  }))()`);
+  assert(moonLit.glowing, "Expected moon trigger to enable glowing state");
+  assert(moonLit.asset.includes("moon-glow-v1.png"), `Expected glowing moon asset, got ${moonLit.asset}`);
+
+  // Trigger pierce by walking right on row 7 (行动区末行「向一匹猹尽力的刺去」)
   await evaluate(`window.__levelTwo.holdRight = true;`);
-  await waitForExpression("window.__levelTwo?.state === 'L2_PIERCE'", 4000);
+  await waitForExpression("window.__levelTwo?.state === 'L2_PIERCE'", 5000);
   await waitForExpression("window.__levelTwo?.state === 'L2_LANDED_SEA'", 3500);
   await evaluate(`window.__levelTwo.holdRight = false;`);
 
@@ -92,13 +112,13 @@ try {
       moonSilvered: moon.classList.contains('is-silvered'),
       inkSeaVisible: document.querySelector('#ink-sea').classList.contains('is-visible'),
       hint: document.querySelector('#hint').textContent,
-      row8Pierced: document.querySelector('.l2-line[data-row="8"]').classList.contains('is-pierced'),
+      row7Pierced: document.querySelector('.l2-line[data-row="7"]').classList.contains('is-pierced'),
     };
   })()`);
   assert(landed.state === "L2_LANDED_SEA", `Expected LANDED_SEA, got ${landed.state}`);
   assert(landed.moonSilvered, "Expected moon to be silvered after pierce");
   assert(landed.inkSeaVisible, "Expected ink sea to be visible");
-  assert(landed.row8Pierced, "Expected row 8 to have is-pierced class");
+  assert(landed.row7Pierced, "Expected row 7 to have is-pierced class");
   assert(landed.hint === "一直游下去。", `Unexpected final hint: ${landed.hint}`);
 
   // ─── Sky-entry test: verify intro + fall sequence ───
@@ -112,7 +132,30 @@ try {
   assert(sandCheck.activeZone === "sand", `Expected sand zone, got ${sandCheck.activeZone}`);
   assert(sandCheck.row === 2, `Expected row 2, got ${sandCheck.row}`);
 
-  console.log(JSON.stringify({ ok: true, landed, render: renderCheck, sand: sandCheck }, null, 2));
+  // ─── Moon hint sequence: narrative echo -> jump suggestion -> dismiss on jump ───
+  await command("Page.navigate", { url: `${baseUrl}?scene=l2-moon` });
+  await waitForExpression("window.__levelTwo?.state === 'L2_PLAYING'", 6000);
+  await waitForExpression(
+    "document.querySelector('#hint')?.textContent === '月亮落低了，再抬头看看？'",
+    3200,
+  );
+  const moonHint = await evaluate(`document.querySelector('#hint').textContent`);
+  await evaluate(`window.__levelTwo.handleIntent('jump')`);
+  const jumpCheck = await evaluate(`(() => ({
+    state: window.__levelTwo.state,
+    hint: document.querySelector('#hint').textContent,
+  }))()`);
+  assert(jumpCheck.state === "L2_CROSSING", `Expected moon jump to cross zones, got ${jumpCheck.state}`);
+  assert(jumpCheck.hint === "", `Expected jump to dismiss hint, got ${jumpCheck.hint}`);
+
+  console.log(JSON.stringify({
+    ok: true,
+    landed,
+    render: renderCheck,
+    sand: sandCheck,
+    moonHint,
+    jump: jumpCheck,
+  }, null, 2));
 } catch (err) {
   console.error("L2 SMOKE FAILED:", err.message);
   console.error("Logs:");
