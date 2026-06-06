@@ -78,10 +78,6 @@ export class LevelThreeGame {
     this.moon.className = "l3-moon";
     this.moon.setAttribute("aria-hidden", "true");
 
-    this.reflection = document.createElement("div");
-    this.reflection.className = "l3-moon-reflection";
-    this.reflection.setAttribute("aria-hidden", "true");
-
     this.viewport = document.createElement("div");
     this.viewport.className = "l3-word-viewport";
 
@@ -105,7 +101,6 @@ export class LevelThreeGame {
     this.buildSettlement();
     this.scene.replaceChildren(
       this.moon,
-      this.reflection,
       this.viewport,
       this.endLine,
       this.settlement,
@@ -324,7 +319,6 @@ export class LevelThreeGame {
     this.showHint();
     this.header?.classList.remove("is-dissolved");
     this.moon.classList.remove("is-settled");
-    this.reflection.classList.remove("is-settled");
     this.paper.style.backgroundColor = mixColor(SILT_PAPER, SILT_PAPER, 0);
     this.pathChars.forEach(({ element }) => {
       element.classList.remove("is-current", "is-passed");
@@ -346,12 +340,11 @@ export class LevelThreeGame {
     this.holdRight = false;
     this.actor.dataset.sheet = "motion";
     this.actor.dataset.frame = "0";
-    this.actor.style.transform = `translate3d(${STAGE_WIDTH / 2 - ACTOR_SIZE / 2}px, 330px, 0) scale(1.2)`;
+    this.actor.style.transform = `translate3d(${STAGE_WIDTH / 2 - ACTOR_SIZE / 2}px, 250px, 0) scale(1.2)`;
     this.stage.classList.add("is-level-three-complete");
     this.header?.classList.add("is-dissolved");
     this.hideHint();
     this.moon.classList.add("is-settled");
-    this.reflection.classList.add("is-settled");
     window.setTimeout(() => {
       if (this.disposed) return;
       this.endLine.classList.add("is-visible");
