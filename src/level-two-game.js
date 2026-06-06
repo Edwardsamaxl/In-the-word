@@ -208,14 +208,14 @@ export class LevelTwoGame {
 
     if (scene === "l2-sand") {
       this.row = 2;
-      this.col = 6;
+      this.col = 7;
       this.updateActiveZone("sand");
       return;
     }
 
     if (scene === "l2-sea-preview") {
       this.row = 2;
-      this.col = 10;
+      this.col = 11;
       this.updateActiveZone("sand");
       this.triggerSeaSide();
       return;
@@ -562,7 +562,7 @@ export class LevelTwoGame {
     this.holdRight = false;
     this.actorPose = "auto";
 
-    const verdant = this.getChar(4, 4) || this.getChar(4, 3);
+    const verdant = this.getChar(4, 11) || this.getChar(4, 10);
     verdant?.classList.add("is-verdant");
 
     const startX = this.actorXBase();

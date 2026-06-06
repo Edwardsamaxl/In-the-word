@@ -33,18 +33,19 @@ const makeRow = (row, text, indent, zone) => {
   };
 };
 
-// 三空间区全部左对齐（indent 0），沿用第一关「当前行撑开」的阅读版式。
+// 折线形排布（PRD §7.4 已锁定）：天空 indent 0 / 沙地 indent 7 / 行动 indent 0。
+// 沙地右移让「圆月」(row1,col7-8) 的跳跃落点（沙地行首 row2,col7）正落在圆月正下方，主轴向下。
 // 区内左对齐、当前行撑开换行；区间只靠 跳跃@圆月 / 西瓜停留@碧绿的西瓜 / 刺去@刺去 三种特殊动作跨越。
-// 「折角」观感改由「西瓜从右砸下」+「右下方文字海」两个横向元素承担，不再靠正文错位。
+// 折角由三区横向错位 + 右下方文字海共同构成；废弃 V1.3 §7.10 的「全部左对齐」修订。
 export const LEVEL_TWO = {
   title: "故乡",
   author: "鲁迅",
   lines: [
     makeRow(0, "深蓝的天空中",            0, "sky"),
     makeRow(1, "挂着一轮金黄的圆月",      0, "sky"),
-    makeRow(2, "下面是海边的沙地",        0, "sand"),
-    makeRow(3, "都种着一望无际的",        0, "sand"),
-    makeRow(4, "碧绿的西瓜",              0, "sand"),
+    makeRow(2, "下面是海边的沙地",        7, "sand"),
+    makeRow(3, "都种着一望无际的",        7, "sand"),
+    makeRow(4, "碧绿的西瓜",              7, "sand"),
     makeRow(5, "其间有一个十一二岁的少年", 0, "action"),
     makeRow(6, "手捏一柄钢叉",            0, "action"),
     makeRow(7, "向一匹猹尽力的刺去",      0, "action"),
@@ -54,20 +55,21 @@ export const LEVEL_TWO = {
     sand:   { rows: [2, 3, 4] },
     action: { rows: [5, 6, 7] },
   },
+  // cols 为绝对列（indent + 行内序号）。沙地区 indent 7，故沙地行的触发列整体 +7。
   triggers: {
-    deepBlue:   { row: 0, cols: [0, 1] },        // 深蓝 · 染色
-    moon:       { row: 1, cols: [7, 8] },        // 圆月 · 月亮缝合
-    seaSide:    { row: 2, cols: [3, 4] },         // 海边 · 目标预告（文字海浮现）
-    vast:       { row: 3, cols: [3, 4, 5, 6] },   // 一望无际 · 加速候选
-    watermelon: { row: 4, cols: [3, 4] },         // 西瓜 · 停留撞落
-    boy:        { row: 5, cols: [0, 1] },         // 少年 · 检查点（行动区入口）
-    spear:      { row: 6, cols: [4, 5] },         // 钢叉 · 蓄势
-    pierce:     { row: 7, cols: [7, 8] },         // 刺去 · 越界推动
+    deepBlue:   { row: 0, cols: [0, 1] },              // 深蓝 · 染色（天空 indent 0）
+    moon:       { row: 1, cols: [7, 8] },              // 圆月 · 月亮缝合（天空 indent 0）
+    seaSide:    { row: 2, cols: [10, 11] },            // 海边 · 目标预告（沙地 indent 7）
+    vast:       { row: 3, cols: [10, 11, 12, 13] },    // 一望无际 · 加速候选（沙地 indent 7）
+    watermelon: { row: 4, cols: [10, 11] },            // 西瓜 · 停留撞落（沙地 indent 7）
+    boy:        { row: 5, cols: [0, 1] },              // 检查点 · 行动区行首安全落点（行动 indent 0）
+    spear:      { row: 6, cols: [4, 5] },              // 钢叉 · 蓄势（行动 indent 0）
+    pierce:     { row: 7, cols: [7, 8] },              // 刺去 · 越界推动（行动 indent 0）
   },
   // 三处跨区落点（控制权递减：主动跳 → 被撞下 → 被卷走）。落点统一在下一区行首，主轴向下。
   crossings: {
-    jump:       { row: 1, cols: [7, 8], to: { row: 2, col: 0 } },  // 天空 → 沙地（向下翻篇）
-    watermelon: { row: 4, cols: [3, 4], to: { row: 5, col: 0 } },  // 沙地 → 行动（撞向行动区左端「少年」入口）
+    jump:       { row: 1, cols: [7, 8], to: { row: 2, col: 7 } },   // 天空 → 沙地（落沙地行首，恰在圆月正下方）
+    watermelon: { row: 4, cols: [10, 11], to: { row: 5, col: 0 } }, // 沙地 → 行动（撞向行动区行首检查点）
   },
   inkSea: {
     rows: 2,
