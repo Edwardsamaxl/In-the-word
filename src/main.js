@@ -3,6 +3,7 @@ import "./styles.css";
 import { InputController } from "./input.js";
 import { LEVEL_ONE, STAGE, STATES } from "./level-one.js";
 import { LevelTwoGame } from "./level-two-game.js";
+import { LevelThreeGame } from "./level-three-game.js";
 
 class LevelOneGame {
   constructor() {
@@ -17,6 +18,7 @@ class LevelOneGame {
     this.pageWash = document.querySelector("#page-wash");
     this.handoff = document.querySelector("#handoff");
     this.resetButton = document.querySelector("#reset");
+    this.skipButton = document.querySelector("#skip");
     this.frostOverlay = document.querySelector("#frost-overlay");
     this.canvas = document.querySelector("#fx");
     this.ctx = this.canvas.getContext("2d");
@@ -46,8 +48,52 @@ class LevelOneGame {
     this.renderPoem();
     this.configureCanvas();
     this.input = new InputController(this.stage, (intent) => this.handleIntent(intent));
-    this.resetButton.addEventListener("click", () => this.handleIntent("reset"));
-    window.addEventListener("resize", () => this.resizeStage());
+    this.resetButton.addEventListener("click", () => {
+      const l3 = window.__levelThree;
+      if (l3 && !l3.disposed) {
+        l3.reset();
+        return;
+      }
+      const l2 = window.__levelTwo;
+      if (l2 && !l2.disposed) {
+        l2.destroy();
+        window.__levelTwo = null;
+        if (this.input) this.input.onIntent = (intent) => this.handleIntent(intent);
+        document.querySelector("#poem-l2")?.setAttribute("aria-hidden", "true");
+        document.querySelector("#poem-l2")?.replaceChildren();
+        const headerL2 = document.querySelector("#page-header-l2");
+        if (headerL2) {
+          headerL2.setAttribute("aria-hidden", "true");
+          gsap.set(headerL2, { opacity: 0 });
+        }
+        document.querySelector("#moon-glow")?.classList.remove("is-active", "is-silvered");
+        const inkSea = document.querySelector("#ink-sea");
+        inkSea?.classList.remove("is-visible");
+        inkSea?.setAttribute("aria-hidden", "true");
+        this.disposed = false;
+        requestAnimationFrame((t) => this.tick(t));
+      }
+      this.handleIntent("reset");
+    });
+    this.skipButton.addEventListener("click", () => {
+      if (window.__levelThree && !window.__levelThree.disposed) {
+        window.__levelThree.finish();
+        return;
+      }
+      if (window.__levelTwo && !window.__levelTwo.disposed) {
+        this.stage.dispatchEvent(
+          new CustomEvent("level-two-complete", {
+            detail: { entry: "skip" },
+          }),
+        );
+        return;
+      }
+      this.stage.dispatchEvent(
+        new CustomEvent("level-one-complete", {
+          detail: { moon: true, entry: "sink", sourceChar: "低" },
+        }),
+      );
+    });
     this.resizeStage();
     this.reset();
     requestAnimationFrame((time) => this.tick(time));
@@ -936,9 +982,6 @@ class LevelOneGame {
       else if (this.sinkProgress < 0.38) frame = 1;
       else if (this.sinkProgress < 0.58) frame = 2;
       else frame = 3;
-    } else if (this.actorPose === "jump-anticipation") {
-      sheet = "motion";
-      frame = 2;
     } else if (this.actorPose === "jump-rise") {
       sheet = "motion";
       frame = 3;
@@ -948,12 +991,6 @@ class LevelOneGame {
     } else if (this.actorPose === "jump-fall") {
       sheet = "motion";
       frame = 5;
-    } else if (this.actorPose === "jump-land") {
-      sheet = "motion";
-      frame = 6;
-    } else if (this.actorPose === "jump-recover") {
-      sheet = "motion";
-      frame = 7;
     } else if (direction !== 0) {
       sheet = "move";
       frame = 2 + (Math.floor(time / 140) % 2);
@@ -1173,8 +1210,40 @@ const startLevelTwo = (handoffDetail) => {
   window.__levelTwo = new LevelTwoGame(refsForL2(), handoffDetail || {});
 };
 
+const refsForL3 = () => ({
+  stage: document.querySelector("#game"),
+  scene: document.querySelector("#level-three"),
+  endLine: document.querySelector("#level-three-end"),
+  actor: document.querySelector("#actor"),
+  trail: document.querySelector("#trail"),
+  hint: document.querySelector("#hint"),
+  paper: document.querySelector(".paper-layer"),
+});
+
+const startLevelThree = () => {
+  gsap.globalTimeline.clear();
+  if (window.__levelThree) {
+    window.__levelThree.destroy();
+  }
+  if (window.__levelTwo && !window.__levelTwo.disposed) {
+    window.__levelTwo.destroy();
+  }
+  if (window.__levelOne) {
+    window.__levelOne.disposed = true;
+    if (window.__levelOne.input) {
+      window.__levelOne.input.onIntent = () => {};
+    }
+  }
+  gsap.set(document.querySelector(".paper-layer"), { opacity: 1 });
+  window.__levelThree = new LevelThreeGame(refsForL3());
+};
+
 window.__levelOne.stage.addEventListener("level-one-complete", (event) => {
   startLevelTwo(event.detail);
+});
+
+window.__levelOne.stage.addEventListener("level-two-complete", () => {
+  startLevelThree();
 });
 
 // QA shortcut: ?scene=l2-* hops directly into L2 without playing L1
@@ -1195,5 +1264,11 @@ if (qaParam.startsWith("l2-")) {
       }
     }
     startLevelTwo({ moon: true, entry: "qa", sourceChar: qaParam });
+  }, 80);
+}
+
+if (qaParam === "l3") {
+  window.setTimeout(() => {
+    startLevelThree();
   }, 80);
 }
