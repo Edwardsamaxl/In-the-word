@@ -64,6 +64,12 @@ try {
   if (idleStart.entering || idleStart.progress !== 0 || idleStart.blueProgress !== 0) {
     throw new Error(`Level two handoff did not settle at the level three start: ${JSON.stringify(idleStart)}`);
   }
+  if (!idleStart.headerVisible || idleStart.headerText !== "03《一直游到海水变蓝》——余华") {
+    throw new Error(`Level three header did not match the PRD: ${JSON.stringify(idleStart)}`);
+  }
+  if (!idleStart.hintVisible || idleStart.hintText !== "一直游下去。") {
+    throw new Error(`Level three hint was not visible at rest: ${JSON.stringify(idleStart)}`);
+  }
   await sleep(1200);
   const idleEnd = await sample();
   if (idleStart.progress !== idleEnd.progress || idleEnd.blueProgress !== 0) {
@@ -87,6 +93,9 @@ try {
   if (moved.progress <= 0 || moved.blueProgress <= 0) {
     throw new Error(`Right input did not move or reveal blue: ${JSON.stringify(moved)}`);
   }
+  if (moved.hintVisible) {
+    throw new Error(`Level three hint did not fade after forward input: ${JSON.stringify(moved)}`);
+  }
 
   await sleep(900);
   const stopped = await sample();
@@ -101,7 +110,7 @@ try {
     code: "ArrowRight",
     windowsVirtualKeyCode: 39,
   });
-  await sleep(900);
+  await sleep(1300);
   const result = await sample();
   if (!result.finished || !result.endVisible) {
     throw new Error(`Level three did not finish under player input: ${JSON.stringify(result)}`);
@@ -156,7 +165,12 @@ function sample() {
     entering: window.__levelThree?.entering,
     finished: window.__levelThree?.finished,
     actor: document.querySelector('#actor')?.style.transform,
-    endVisible: document.querySelector('#level-three-end')?.classList.contains('is-visible')
+    endVisible: document.querySelector('#level-three-end')?.classList.contains('is-visible'),
+    headerVisible: getComputedStyle(document.querySelector('#page-header-l3')).display !== 'none'
+      && Number(getComputedStyle(document.querySelector('#page-header-l3')).opacity) > 0.5,
+    headerText: document.querySelector('#page-header-l3')?.textContent.replace(/\\s/g, ''),
+    hintVisible: document.querySelector('#hint')?.classList.contains('is-visible'),
+    hintText: document.querySelector('#hint')?.textContent
   })`);
 }
 

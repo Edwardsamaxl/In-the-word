@@ -624,6 +624,11 @@ class LevelOneGame {
       this.showWallFeedback();
     }
 
+    if (this.moonCreated && this.row === 1 && this.col < 0) {
+      this.col = 0;
+      this.showWallFeedback();
+    }
+
     const rowLastCol = LEVEL_ONE.lines[this.row].length - 1;
     if (this.row === 0 && this.col > rowLastCol + 0.5) {
       this.startWrap(1, 0, 1);
@@ -1226,6 +1231,7 @@ const refsForL3 = () => ({
   actor: document.querySelector("#actor"),
   trail: document.querySelector("#trail"),
   hint: document.querySelector("#hint"),
+  headerL3: document.querySelector("#page-header-l3"),
   paper: document.querySelector(".paper-layer"),
 });
 
