@@ -6,6 +6,10 @@ import { LevelTwoGame } from "./level-two-game.js";
 import { LevelThreeGame } from "./level-three-game.js";
 import { journey } from "./journey.js";
 
+const SINK_RANGE = 1.25;
+const SINK_BULLET_TIME_RANGE = 1.5;
+const SINK_HOLD_DURATION = 650;
+
 class LevelOneGame {
   constructor() {
     this.stage = document.querySelector("#game");
@@ -52,7 +56,13 @@ class LevelOneGame {
     this.resetButton.addEventListener("click", () => {
       const l3 = window.__levelThree;
       if (l3 && !l3.disposed) {
-        l3.reset();
+        l3.destroy();
+        window.__levelThree = null;
+        if (this.input) this.input.onIntent = (intent) => this.handleIntent(intent);
+        journey.reset();
+        this.disposed = false;
+        requestAnimationFrame((t) => this.tick(t));
+        this.handleIntent("reset");
         return;
       }
       const l2 = window.__levelTwo;
@@ -432,7 +442,8 @@ class LevelOneGame {
     const sinkableState =
       this.state === STATES.PLAYING_POST_MOON ||
       (this.state === STATES.BULLET_TIME && this.moonCreated);
-    const sinkRange = this.state === STATES.BULLET_TIME ? 1.5 : 0.5;
+    const sinkRange =
+      this.state === STATES.BULLET_TIME ? SINK_BULLET_TIME_RANGE : SINK_RANGE;
     if (
       !sinkableState ||
       this.row !== LEVEL_ONE.triggers.sink.row ||
@@ -450,7 +461,7 @@ class LevelOneGame {
     const sink = { value: 0 };
     this.sinkTween = gsap.to(sink, {
       value: 1,
-      duration: 1,
+      duration: SINK_HOLD_DURATION / 1000,
       ease: "power2.in",
       onUpdate: () => {
         this.sinkProgress = sink.value;
@@ -461,7 +472,7 @@ class LevelOneGame {
     this.sinkTimer = window.setTimeout(() => {
       this.sinkTimer = null;
       this.transitionToLevelTwo();
-    }, 1000);
+    }, SINK_HOLD_DURATION);
     this.timers.add(this.sinkTimer);
   }
 
@@ -475,7 +486,8 @@ class LevelOneGame {
     const sinkableState =
       this.state === STATES.PLAYING_POST_MOON ||
       (this.state === STATES.BULLET_TIME && this.moonCreated);
-    const sinkRange = this.state === STATES.BULLET_TIME ? 1.5 : 0.5;
+    const sinkRange =
+      this.state === STATES.BULLET_TIME ? SINK_BULLET_TIME_RANGE : SINK_RANGE;
     const validPosition =
       sinkableState &&
       this.row === LEVEL_ONE.triggers.sink.row &&
@@ -1261,6 +1273,10 @@ window.__levelOne.stage.addEventListener("level-one-complete", (event) => {
 
 window.__levelOne.stage.addEventListener("level-two-complete", (event) => {
   startLevelThree(event.detail);
+});
+
+window.__levelOne.stage.addEventListener("level-three-replay", () => {
+  window.__levelOne.resetButton.click();
 });
 
 // QA shortcut: ?scene=l2-* hops directly into L2 without playing L1

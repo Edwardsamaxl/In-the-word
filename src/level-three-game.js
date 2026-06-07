@@ -1,3 +1,4 @@
+import { gsap } from "gsap";
 import { journey } from "./journey.js";
 
 const STAGE_WIDTH = 412;
@@ -31,6 +32,19 @@ const lerp = (start, end, amount) => start + (end - start) * amount;
 const smoothstep = (start, end, value) => {
   const amount = clamp((value - start) / (end - start));
   return amount * amount * (3 - 2 * amount);
+};
+
+const resistanceBand = (start, center, end, progress) =>
+  smoothstep(start, center, progress) * (1 - smoothstep(center, end, progress));
+
+export const getLevelThreeForwardSpeed = (progress) => {
+  const acceleration = smoothstep(0.04, 1, progress);
+  const baseSpeed = lerp(0.06, 0.132, acceleration);
+  const resistance =
+    resistanceBand(0.12, 0.21, 0.31, progress) * 0.28 +
+    resistanceBand(0.36, 0.45, 0.55, progress) * 0.2 +
+    resistanceBand(0.57, 0.64, 0.71, progress) * 0.1;
+  return baseSpeed * (1 - resistance);
 };
 
 const mixColor = (from, to, amount) => {
@@ -148,8 +162,7 @@ export class LevelThreeGame {
   }
 
   replay() {
-    journey.reset();
-    window.location.assign(window.location.pathname);
+    this.stage.dispatchEvent(new CustomEvent("level-three-replay"));
   }
 
   captureShare() {
@@ -366,9 +379,24 @@ export class LevelThreeGame {
 
   destroy() {
     this.disposed = true;
+    gsap.killTweensOf([
+      this.actor,
+      this.moon,
+      this.viewport,
+      this.endLine,
+      this.settlement,
+      this.paper,
+    ]);
     this.stage.classList.remove("is-level-three", "is-level-three-complete");
+    this.stage.style.removeProperty("--l3-progress");
+    this.stage.style.removeProperty("--l3-effort");
+    this.scene.style.removeProperty("--l3-progress");
+    this.scene.style.removeProperty("--l3-effort");
     this.scene.setAttribute("aria-hidden", "true");
+    this.scene.replaceChildren(this.endLine);
     this.header?.setAttribute("aria-hidden", "true");
+    this.paper.style.removeProperty("background-color");
+    this.endLine.classList.remove("is-visible");
   }
 
   handleIntent(intent) {
@@ -408,8 +436,7 @@ export class LevelThreeGame {
     let travelDirection = 0;
 
     if (intent > 0) {
-      const release = smoothstep(0.12, 0.86, this.progress);
-      const speed = lerp(0.058, 0.104, release);
+      const speed = getLevelThreeForwardSpeed(this.progress);
       this.progress = clamp(this.progress + speed * dt);
       this.blueProgress = Math.max(this.blueProgress, this.progress);
       travelDirection = 1;
@@ -447,17 +474,11 @@ export class LevelThreeGame {
     const effort = 1 - smoothstep(0.08, 0.72, progress);
     const moving = direction > 0;
     const slowing = direction < 0;
-    // Heavy water in the yellow zone reads as weight, not jitter: slow low-frequency
-    // sway + a downward droop tugged by the current. It lightens toward the blue.
-    const bobPeriod = lerp(540, 205, progress);
-    const bobAmp = lerp(2.4, 1.5, progress);
-    const swimBob = moving
-      ? Math.sin(time / bobPeriod) * bobAmp
-      : Math.sin(time / 780) * 1.1;
-    const drag = effort * (5 + Math.sin(time / 900) * 1.8);
-    const actorY = PATH_TOP - 4 + swimBob + drag;
+    // Resistance belongs to the forward speed curve; vertical movement made the
+    // camera-follow section read as jitter because the actor stays near one X.
+    const actorY = PATH_TOP;
     const frame = moving
-      ? 2 + (Math.floor(time / lerp(235, 128, progress)) % 2)
+      ? 2 + (Math.floor(worldX / 18) % 2)
       : slowing
         ? 1
         : Math.floor(time / 760) % 2;

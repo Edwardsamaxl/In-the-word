@@ -5,6 +5,7 @@ import path from "node:path";
 
 const executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5173";
+const directLevelThree = process.env.L3_DIRECT === "1";
 const port = 9700 + Math.floor(Math.random() * 200);
 const userDataDir = await mkdtemp(path.join(tmpdir(), "in-the-word-l3-"));
 const chrome = spawn(
@@ -43,22 +44,48 @@ try {
   await command("Page.enable");
   await command("Runtime.enable");
 
-  await command("Page.navigate", { url: `${baseUrl}/?scene=l2-action` });
-  await sleep(700);
-  const aligned = await actionLineLefts();
-  if (Math.max(...aligned) - Math.min(...aligned) > 1) {
-    throw new Error(`Action lines were not initially aligned: ${JSON.stringify(aligned)}`);
-  }
+  let aligned = [];
+  let cocked = [];
+  let seaFlowStart = null;
+  let seaFlowEnd = null;
+  if (directLevelThree) {
+    await command("Page.navigate", { url: `${baseUrl}/?scene=l3` });
+    await sleep(700);
+  } else {
+    await command("Page.navigate", { url: `${baseUrl}/?scene=l2-action` });
+    await sleep(700);
+    aligned = await actionLineLefts();
+    if (Math.max(...aligned) - Math.min(...aligned) > 1) {
+      throw new Error(`Action lines were not initially aligned: ${JSON.stringify(aligned)}`);
+    }
+    seaFlowStart = await seaFlowSample();
+    await sleep(320);
+    seaFlowEnd = await seaFlowSample();
+    if (
+      !seaFlowStart.stageActive ||
+      !seaFlowStart.inkSeaVisible ||
+      seaFlowStart.animationNames.some((name) => !name.includes("l2-sea-current")) ||
+      seaFlowStart.transforms.every((value, index) => value === seaFlowEnd.transforms[index])
+    ) {
+      throw new Error(`Sea-side text flow was not active: ${JSON.stringify({
+        seaFlowStart,
+        seaFlowEnd,
+      })}`);
+    }
 
-  await command("Page.navigate", { url: `${baseUrl}/?scene=l2-spear` });
-  await sleep(700);
-  const cocked = await actionLineLefts();
-  if (Math.abs(cocked[0] - cocked[2]) > 1 || cocked[1] > cocked[0] - 18) {
-    throw new Error(`Spear line did not pull back independently: ${JSON.stringify(cocked)}`);
-  }
+    await command("Page.navigate", { url: `${baseUrl}/?scene=l2-spear` });
+    await sleep(700);
+    cocked = await actionLineLefts();
+    if (Math.abs(cocked[0] - cocked[2]) > 1 || cocked[1] > cocked[0] - 18) {
+      throw new Error(`Spear line did not pull back independently: ${JSON.stringify(cocked)}`);
+    }
 
-  await command("Page.navigate", { url: `${baseUrl}/?scene=l2-pierce` });
-  await sleep(2600);
+    await command("Page.navigate", { url: `${baseUrl}/?scene=l2-pierce` });
+    await waitForExpression(
+      "window.__levelThree && !window.__levelThree.entering",
+      6000,
+    );
+  }
 
   const idleStart = await sample();
   if (idleStart.entering || idleStart.progress !== 0 || idleStart.blueProgress !== 0) {
@@ -82,6 +109,15 @@ try {
     code: "ArrowRight",
     windowsVirtualKeyCode: 39,
   });
+  const motionSamples = [];
+  for (let index = 0; index < 8; index += 1) {
+    await sleep(90);
+    motionSamples.push(await sample());
+  }
+  const actorYs = motionSamples.map(({ actor }) => transformY(actor));
+  if (Math.max(...actorYs) - Math.min(...actorYs) > 0.05) {
+    throw new Error(`Level three actor jittered vertically: ${JSON.stringify(actorYs)}`);
+  }
   await sleep(1500);
   await command("Input.dispatchKeyEvent", {
     type: "keyUp",
@@ -103,6 +139,25 @@ try {
     throw new Error(`Level three kept moving after release: ${JSON.stringify({ moved, stopped })}`);
   }
 
+  const earlySpeed = await measureSpeedAt(0.08);
+  const firstResistance = await measureSpeedAt(0.21);
+  const middleSpeed = await measureSpeedAt(0.34);
+  const secondResistance = await measureSpeedAt(0.45);
+  const lateSpeed = await measureSpeedAt(0.76);
+  if (
+    firstResistance >= earlySpeed ||
+    secondResistance >= middleSpeed ||
+    lateSpeed <= middleSpeed
+  ) {
+    throw new Error(`Level three speed curve did not slow then accelerate: ${JSON.stringify({
+      earlySpeed,
+      firstResistance,
+      middleSpeed,
+      secondResistance,
+      lateSpeed,
+    })}`);
+  }
+
   await evaluate(`window.__levelThree.progress = 0.96`);
   await command("Input.dispatchKeyEvent", {
     type: "keyDown",
@@ -115,7 +170,17 @@ try {
   if (!result.finished || !result.endVisible) {
     throw new Error(`Level three did not finish under player input: ${JSON.stringify(result)}`);
   }
-  console.log(JSON.stringify({ aligned, cocked, idleStart, idleEnd, moved, stopped, result }));
+  console.log(JSON.stringify({
+    aligned,
+    seaFlowStart,
+    seaFlowEnd,
+    cocked,
+    idleStart,
+    idleEnd,
+    moved,
+    stopped,
+    result,
+  }));
 } finally {
   socket?.close();
   chrome.kill();
@@ -156,6 +221,53 @@ async function evaluate(expression) {
     throw new Error(result.exceptionDetails.text || "Runtime evaluation failed.");
   }
   return result.result.value;
+}
+
+async function waitForExpression(expression, timeout) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await evaluate(`Boolean(${expression})`)) return;
+    await sleep(50);
+  }
+  throw new Error(`Timed out waiting for: ${expression}`);
+}
+
+async function measureSpeedAt(progress) {
+  await evaluate(`window.__levelThree.progress = ${progress}`);
+  const start = await sample();
+  await command("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "ArrowRight",
+    code: "ArrowRight",
+    windowsVirtualKeyCode: 39,
+  });
+  await sleep(240);
+  await command("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "ArrowRight",
+    code: "ArrowRight",
+    windowsVirtualKeyCode: 39,
+  });
+  const end = await sample();
+  return end.progress - start.progress;
+}
+
+function seaFlowSample() {
+  return evaluate(`(() => {
+    const lines = [...document.querySelectorAll('.l2-line-current')];
+    return {
+      stageActive: document.querySelector('#game').classList.contains('is-paper-sea'),
+      inkSeaVisible: document.querySelector('#ink-sea').classList.contains('is-visible'),
+      animationNames: lines.map((line) => getComputedStyle(line).animationName),
+      transforms: lines.map((line) => getComputedStyle(line).transform)
+    };
+  })()`);
+}
+
+function transformY(transform) {
+  const match = transform?.match(/translate3d\([^,]+,\s*([-\d.]+)px/);
+  if (!match) throw new Error(`Could not parse actor transform: ${transform}`);
+  return Number(match[1]);
 }
 
 function sample() {

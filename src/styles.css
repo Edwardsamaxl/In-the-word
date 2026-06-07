@@ -882,6 +882,24 @@ button {
 /* 进入态：先全暗，再依 row 顺序点亮 */
 .poem-l2.is-entering .l2-line { opacity: 0 !important; }
 
+/* 海边出现后，诗句成为错相位的水流。内层承载水流，外层保留给关卡位移。 */
+.l2-line-current {
+  display: flex;
+  height: 46px;
+}
+
+.game-stage.is-level-two.is-paper-sea .poem-l2 .l2-line-current {
+  animation:
+    l2-sea-current var(--sea-flow-duration, 4.6s)
+    var(--sea-flow-delay, 0ms)
+    ease-in-out infinite;
+  will-change: transform;
+}
+
+.game-stage.is-level-two.is-paper-sea .poem-l2 .l2-line:nth-child(even) .l2-line-current {
+  animation-direction: reverse;
+}
+
 /* 行染色：深蓝（接近时持续染色，离开后淡出 —— 同第一关「光」） */
 .l2-line[data-row="0"] {
   border-radius: 8px;
@@ -1143,6 +1161,13 @@ button {
 @keyframes sea-bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
+}
+
+@keyframes l2-sea-current {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  24% { transform: translate3d(2.5px, -2.4px, 0); }
+  52% { transform: translate3d(-1.5px, 1.8px, 0); }
+  76% { transform: translate3d(-3px, -1px, 0); }
 }
 
 @keyframes sea-landed {
@@ -1650,6 +1675,8 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .char,
   .l2-char,
+  .l2-line,
+  .l2-line-current,
   .ink-sea-cell,
   .l3-sea-char,
   .l3-moon-reflection::after,

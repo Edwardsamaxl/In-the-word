@@ -106,6 +106,11 @@ export class LevelTwoGame {
       lineElement.dataset.row = String(line.row);
       lineElement.dataset.zone = line.zone;
       lineElement.style.left = `${STAGE_L2.gridLeft + line.indent * STAGE_L2.cellWidth}px`;
+      lineElement.style.setProperty("--sea-flow-delay", `${line.row * 110}ms`);
+      lineElement.style.setProperty("--sea-flow-duration", `${4.2 + (line.row % 3) * 0.55}s`);
+
+      const currentElement = document.createElement("div");
+      currentElement.className = "l2-line-current";
 
       line.chars.forEach((char, localCol) => {
         const col = line.indent + localCol;
@@ -115,9 +120,10 @@ export class LevelTwoGame {
         charEl.dataset.col = String(col);
         charEl.dataset.char = char;
         charEl.textContent = char;
-        lineElement.append(charEl);
+        currentElement.append(charEl);
       });
 
+      lineElement.append(currentElement);
       this.poemL2.append(lineElement);
     });
     this.layoutLines(this.activeRow);

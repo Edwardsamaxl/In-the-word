@@ -142,14 +142,14 @@ try {
     return {
       left: moon.offsetLeft,
       top: moon.offsetTop,
-      backgroundImage: getComputedStyle(moon).backgroundImage
+      backgroundImage: getComputedStyle(moon, '::before').backgroundImage
     };
   })()`);
   assert(moonVisual.left === 308, `Expected moon at x=308, received ${moonVisual.left}.`);
   assert(moonVisual.top === 108, `Expected moon at y=108, received ${moonVisual.top}.`);
   assert(
-    moonVisual.backgroundImage.includes("radial-gradient"),
-    "Expected the moon to use a lit radial surface.",
+    moonVisual.backgroundImage.includes("moon-"),
+    "Expected the moon to use the current moon artwork.",
   );
   await key("ArrowRight", "ArrowRight", 39, "keyDown");
   await waitForExpression(
@@ -157,6 +157,13 @@ try {
     4000,
   );
   await key("ArrowRight", "ArrowRight", 39, "keyUp");
+  await evaluate(`
+    window.__levelOne.state = 'PLAYING_POST_MOON';
+    window.__levelOne.stage.classList.remove('is-bullet-time', 'is-cool');
+    window.__levelOne.col = 5;
+    window.__levelOne.updateActor();
+  `);
+  const sinkStartedAt = Date.now();
   await key("ArrowDown", "ArrowDown", 40, "keyDown");
   await waitForExpression("Boolean(window.__levelOne?.sinkTimer)", 1000);
   await sleep(250);
@@ -171,6 +178,12 @@ try {
   assert(sinkVisual.pose === "sinking", `Expected sinking pose, received ${sinkVisual.pose}.`);
   assert(sinkVisual.sheet === "sink", `Expected sink sheet, received ${sinkVisual.sheet}.`);
   assert(["0", "1", "2", "3"].includes(sinkVisual.frame), "Expected a dedicated sink frame.");
+  await waitForExpression("window.__levelOne?.state === 'TRANSITION_TO_LEVEL_2'", 1000);
+  const sinkHoldDuration = Date.now() - sinkStartedAt;
+  assert(
+    sinkHoldDuration < 850,
+    `Expected a shorter sink hold, received ${sinkHoldDuration}ms.`,
+  );
   await waitForExpression("window.__levelOne?.state === 'HANDOFF'", 5000);
   await waitForExpression(
     "Number.parseFloat(getComputedStyle(document.querySelector('#handoff')).opacity) > 0.9",
@@ -187,7 +200,7 @@ try {
   assert(result.state === "HANDOFF", `Expected HANDOFF, received ${result.state}.`);
   assert(result.moonCreated === true, "Moon was not created.");
   assert(Number.parseFloat(result.handoffOpacity) > 0.9, "Handoff scene is not visible.");
-  console.log(JSON.stringify(result));
+  console.log(JSON.stringify({ ...result, sinkHoldDuration }));
 } finally {
   socket?.close();
   chrome.kill();
