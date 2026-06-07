@@ -81,10 +81,49 @@ try {
     }
 
     await command("Page.navigate", { url: `${baseUrl}/?scene=l2-pierce` });
+    await waitForExpression("window.__levelThree", 6000);
+    const entryStart = await sample();
+    if (
+      !entryStart.entering ||
+      entryStart.headerVisible ||
+      entryStart.hintVisible
+    ) {
+      throw new Error(`Level three entry controls appeared too early: ${JSON.stringify(entryStart)}`);
+    }
+    const entrySamples = [entryStart];
+    while (entrySamples.at(-1).entering && entrySamples.length < 20) {
+      await sleep(70);
+      entrySamples.push(await sample());
+    }
+    const revealSamples = entrySamples.filter(
+      ({ actorOpacity, seaOpacity }) => actorOpacity > 0.05 || seaOpacity > 0.05,
+    );
+    if (
+      revealSamples.length < 2 ||
+      revealSamples.some(({ actorOpacity, seaOpacity }) => Math.abs(actorOpacity - seaOpacity) > 0.18)
+    ) {
+      throw new Error(`Level three actor and words did not reveal together: ${JSON.stringify(
+        revealSamples.map(({ actorOpacity, seaOpacity, pathOpacity }) => ({
+          actorOpacity,
+          seaOpacity,
+          pathOpacity,
+        })),
+      )}`);
+    }
     await waitForExpression(
       "window.__levelThree && !window.__levelThree.entering",
       6000,
     );
+    const entryEnd = await sample();
+    if (
+      entryEnd.pathOpacity < 0.95 ||
+      entryEnd.seaOpacity < 0.95 ||
+      entryEnd.actorOpacity < 0.95 ||
+      !entryEnd.headerVisible ||
+      !entryEnd.hintVisible
+    ) {
+      throw new Error(`Level three words did not appear after the water entry: ${JSON.stringify(entryEnd)}`);
+    }
   }
 
   const idleStart = await sample();
@@ -277,12 +316,15 @@ function sample() {
     entering: window.__levelThree?.entering,
     finished: window.__levelThree?.finished,
     actor: document.querySelector('#actor')?.style.transform,
+    actorOpacity: Number(getComputedStyle(document.querySelector('#actor')).opacity),
     endVisible: document.querySelector('#level-three-end')?.classList.contains('is-visible'),
     headerVisible: getComputedStyle(document.querySelector('#page-header-l3')).display !== 'none'
       && Number(getComputedStyle(document.querySelector('#page-header-l3')).opacity) > 0.5,
     headerText: document.querySelector('#page-header-l3')?.textContent.replace(/\\s/g, ''),
     hintVisible: document.querySelector('#hint')?.classList.contains('is-visible'),
-    hintText: document.querySelector('#hint')?.textContent
+    hintText: document.querySelector('#hint')?.textContent,
+    pathOpacity: Number(getComputedStyle(document.querySelector('.l3-text-path')).opacity),
+    seaOpacity: Number(getComputedStyle(document.querySelector('.l3-sea-field')).opacity)
   })`);
 }
 

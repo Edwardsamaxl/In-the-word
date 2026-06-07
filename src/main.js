@@ -58,6 +58,7 @@ class LevelOneGame {
       if (l3 && !l3.disposed) {
         l3.destroy();
         window.__levelThree = null;
+        this.clearLevelTwoArtifacts();
         if (this.input) this.input.onIntent = (intent) => this.handleIntent(intent);
         journey.reset();
         this.disposed = false;
@@ -67,20 +68,8 @@ class LevelOneGame {
       }
       const l2 = window.__levelTwo;
       if (l2 && !l2.disposed) {
-        l2.destroy();
-        window.__levelTwo = null;
+        this.clearLevelTwoArtifacts();
         if (this.input) this.input.onIntent = (intent) => this.handleIntent(intent);
-        document.querySelector("#poem-l2")?.setAttribute("aria-hidden", "true");
-        document.querySelector("#poem-l2")?.replaceChildren();
-        const headerL2 = document.querySelector("#page-header-l2");
-        if (headerL2) {
-          headerL2.setAttribute("aria-hidden", "true");
-          gsap.set(headerL2, { opacity: 0 });
-        }
-        document.querySelector("#moon-glow")?.classList.remove("is-active", "is-silvered");
-        const inkSea = document.querySelector("#ink-sea");
-        inkSea?.classList.remove("is-visible");
-        inkSea?.setAttribute("aria-hidden", "true");
         this.disposed = false;
         requestAnimationFrame((t) => this.tick(t));
       }
@@ -154,6 +143,23 @@ class LevelOneGame {
     this.stage.style.transform = `scale(${scale})`;
     this.viewport.style.width = `${STAGE.width * scale}px`;
     this.viewport.style.height = `${STAGE.height * scale}px`;
+  }
+
+  clearLevelTwoArtifacts() {
+    const l2 = window.__levelTwo;
+    if (l2 && !l2.disposed) l2.destroy();
+    window.__levelTwo = null;
+    document.querySelector("#poem-l2")?.setAttribute("aria-hidden", "true");
+    document.querySelector("#poem-l2")?.replaceChildren();
+    const headerL2 = document.querySelector("#page-header-l2");
+    if (headerL2) {
+      headerL2.setAttribute("aria-hidden", "true");
+      gsap.set(headerL2, { opacity: 0 });
+    }
+    document.querySelector("#moon-glow")?.classList.remove("is-active", "is-silvered");
+    const inkSea = document.querySelector("#ink-sea");
+    inkSea?.classList.remove("is-visible");
+    inkSea?.setAttribute("aria-hidden", "true");
   }
 
   reset() {
@@ -1207,6 +1213,18 @@ class LevelOneGame {
     this.timers.clear();
   }
 }
+
+const bgm = new Audio("/audio/bgm.mp3");
+bgm.loop = true;
+bgm.volume = 0.5;
+const startBgm = () => {
+  bgm.play().then(() => {
+    window.removeEventListener("pointerdown", startBgm);
+    window.removeEventListener("keydown", startBgm);
+  }).catch(() => {});
+};
+window.addEventListener("pointerdown", startBgm);
+window.addEventListener("keydown", startBgm);
 
 window.__levelOne = new LevelOneGame();
 

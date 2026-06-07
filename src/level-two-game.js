@@ -702,6 +702,7 @@ export class LevelTwoGame {
             this.triggerCheckpoint(target.col);
             this.bounceLand();
             this.state = STATES_L2.PLAYING;
+            this.setHint(this.baseHint);
           },
         },
         "impact",

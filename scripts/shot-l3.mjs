@@ -46,6 +46,14 @@ try {
     deviceScaleFactor: 2,
     mobile: true,
   });
+  await command("Page.navigate", { url: `${baseUrl}/?scene=l2-pierce` });
+  await waitForExpression("window.__levelThree", 7000);
+  await capture("l3-entry-start");
+  await sleep(120);
+  await capture("l3-entry-mid");
+  await waitForExpression("window.__levelThree && !window.__levelThree.entering", 3000);
+  await capture("l3-entry-complete");
+
   await command("Page.navigate", { url: `${baseUrl}/?scene=l3` });
   await waitForExpression("window.__levelThree", 7000);
   await sleep(700);

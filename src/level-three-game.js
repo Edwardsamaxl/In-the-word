@@ -3,7 +3,7 @@ import { journey } from "./journey.js";
 
 const STAGE_WIDTH = 412;
 const ACTOR_SIZE = 22;
-const ENTRY_DRIFT_DURATION = 1100;
+const ENTRY_REVEAL_DURATION = 720;
 const PATH_TOP = 454;
 const PATH_START = 64;
 const PATH_END_PADDING = 108;
@@ -77,7 +77,6 @@ export class LevelThreeGame {
     this.holdLeft = false;
     this.holdRight = false;
     this.entering = handoffDetail.entry === "ink-sea";
-    this.entryStartedAt = null;
     this.pathChars = [];
     this.seaChars = [];
     this.lastActiveIndex = -1;
@@ -300,7 +299,6 @@ export class LevelThreeGame {
     this.scene.setAttribute("aria-hidden", "false");
     this.header?.setAttribute("aria-hidden", "false");
     this.header?.classList.remove("is-dissolved");
-    this.showHint();
     this.trail.style.opacity = "0";
     this.endLine.classList.remove("is-visible");
     this.actor.style.opacity = "1";
@@ -310,7 +308,12 @@ export class LevelThreeGame {
     this.actor.dataset.pose = "auto";
     this.paper.style.backgroundColor = mixColor(SILT_PAPER, SILT_PAPER, 0);
     this.update(0, performance.now(), 0);
-    if (this.entering) this.updateEntry(0, performance.now());
+    if (this.entering) {
+      this.prepareEntry();
+      this.revealEntry();
+    } else {
+      this.showEntryWords();
+    }
   }
 
   reset() {
@@ -321,7 +324,6 @@ export class LevelThreeGame {
     this.holdLeft = false;
     this.holdRight = false;
     this.entering = false;
-    this.entryStartedAt = null;
     this.lastFrame = performance.now();
     this.lastActiveIndex = -1;
     this.stage.classList.remove("is-level-three-complete");
@@ -329,7 +331,7 @@ export class LevelThreeGame {
     this.settlement.classList.remove("is-visible");
     this.settlement.setAttribute("aria-hidden", "true");
     this.actor.style.opacity = "1";
-    this.showHint();
+    this.showEntryWords();
     this.header?.classList.remove("is-dissolved");
     this.moon.classList.remove("is-settled");
     this.paper.style.backgroundColor = mixColor(SILT_PAPER, SILT_PAPER, 0);
@@ -383,6 +385,10 @@ export class LevelThreeGame {
       this.actor,
       this.moon,
       this.viewport,
+      this.path,
+      this.seaField,
+      this.header,
+      this.hint,
       this.endLine,
       this.settlement,
       this.paper,
@@ -395,6 +401,7 @@ export class LevelThreeGame {
     this.scene.setAttribute("aria-hidden", "true");
     this.scene.replaceChildren(this.endLine);
     this.header?.setAttribute("aria-hidden", "true");
+    if (this.header) gsap.set(this.header, { opacity: 0 });
     this.paper.style.removeProperty("background-color");
     this.endLine.classList.remove("is-visible");
   }
@@ -410,7 +417,6 @@ export class LevelThreeGame {
     if (intent === "release-left") this.holdLeft = false;
     if (intent === "hold-right") {
       this.holdRight = true;
-      this.hideHint();
     }
     if (intent === "release-right") this.holdRight = false;
   }
@@ -418,14 +424,6 @@ export class LevelThreeGame {
   tick(time) {
     if (this.disposed || this.finished) return;
     if (this.entering) {
-      if (this.entryStartedAt === null) this.entryStartedAt = time;
-      const entryProgress = clamp((time - this.entryStartedAt) / ENTRY_DRIFT_DURATION);
-      this.updateEntry(entryProgress, time);
-      if (entryProgress >= 1) {
-        this.entering = false;
-        this.lastFrame = time;
-        this.update(0, time, 0);
-      }
       requestAnimationFrame((nextTime) => this.tick(nextTime));
       return;
     }
@@ -454,16 +452,66 @@ export class LevelThreeGame {
     requestAnimationFrame((nextTime) => this.tick(nextTime));
   }
 
-  updateEntry(progress, time) {
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const actorX = lerp(311, 64, eased);
-    const actorY = lerp(630, PATH_TOP, eased) + Math.sin(progress * Math.PI * 2) * 7;
-    const frame = 1 + (Math.floor(time / 180) % 3);
+  prepareEntry() {
+    this.hint.textContent = LEVEL_HINT;
+    this.hint.classList.remove("is-visible");
+    gsap.set(this.hint, { opacity: 0, transition: "none" });
+    gsap.set(this.header, { opacity: 0, transition: "none" });
+    gsap.set(this.seaField, { opacity: 0, y: 10 });
+    gsap.set(this.path, { opacity: 0, y: 8 });
+    gsap.set(this.actor, { opacity: 0, transition: "none" });
+    this.actor.dataset.sheet = "motion";
+    this.actor.dataset.frame = "0";
+    this.actor.dataset.pose = "auto";
+    this.actor.style.transform = `translate3d(${PATH_START - ACTOR_SIZE / 2}px, ${PATH_TOP - ACTOR_SIZE}px, 0) scale(1.14)`;
+    this.viewport.style.transform = "translate3d(0, 0, 0)";
+  }
 
-    this.actor.dataset.sheet = "sink";
-    this.actor.dataset.frame = String(frame);
-    this.actor.style.transform = `translate3d(${actorX - ACTOR_SIZE / 2}px, ${actorY - ACTOR_SIZE}px, 0) scale(1.18)`;
-    this.viewport.style.transform = `translate3d(${lerp(18, 0, eased)}px, 0, 0)`;
+  revealEntry() {
+    const duration = ENTRY_REVEAL_DURATION / 1000;
+
+    gsap
+      .timeline({
+        onComplete: () => {
+          if (this.disposed) return;
+          gsap.set([this.actor, this.header], { clearProps: "transition" });
+          gsap.set(this.hint, { clearProps: "opacity,transition" });
+          this.entering = false;
+          this.lastFrame = performance.now();
+          this.update(0, this.lastFrame, 0);
+          this.showHint();
+        },
+      })
+      .to(this.seaField, {
+        opacity: 1,
+        y: 0,
+        duration,
+        ease: "power2.out",
+      }, 0)
+      .to(this.path, {
+        opacity: 1,
+        y: 0,
+        duration: duration * 0.9,
+        ease: "power2.out",
+      }, 0.04)
+      .to(this.actor, {
+        opacity: 1,
+        duration,
+        ease: "power2.out",
+      }, 0)
+      .to(this.header, {
+        opacity: 1,
+        duration: duration * 0.66,
+        ease: "power1.out",
+      }, 0.18);
+  }
+
+  showEntryWords() {
+    gsap.set([this.path, this.seaField, this.header], {
+      opacity: 1,
+      y: 0,
+    });
+    this.showHint();
   }
 
   update(progress, time, direction) {
