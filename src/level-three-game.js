@@ -10,6 +10,7 @@ const PATH_END_PADDING = 108;
 const CHAR_STEP = 34;
 const SEA_ROWS = 9;
 const SEA_COLS = 35;
+const SHARE_CARD_URL = "/assets/share/settlement-card-v1.png";
 const LEVEL_HINT = "一直游下去。";
 
 // Continuous yellow→blue water ramp. The page opens muddy ochre ("海是黄的")
@@ -36,6 +37,36 @@ const smoothstep = (start, end, value) => {
 
 const resistanceBand = (start, center, end, progress) =>
   smoothstep(start, center, progress) * (1 - smoothstep(center, end, progress));
+
+const loadImage = (src) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+    image.src = src;
+  });
+
+const shareCardImage = loadImage(SHARE_CARD_URL);
+
+const canvasToBlob = (canvas) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Failed to create share card"));
+    }, "image/png");
+  });
+
+const drawRoundedRect = (ctx, x, y, width, height, radius) => {
+  const corner = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + corner, y);
+  ctx.arcTo(x + width, y, x + width, y + height, corner);
+  ctx.arcTo(x + width, y + height, x, y + height, corner);
+  ctx.arcTo(x, y + height, x, y, corner);
+  ctx.arcTo(x, y, x + width, y, corner);
+  ctx.closePath();
+};
 
 export const getLevelThreeForwardSpeed = (progress) => {
   const acceleration = smoothstep(0.04, 1, progress);
@@ -80,6 +111,7 @@ export class LevelThreeGame {
     this.pathChars = [];
     this.seaChars = [];
     this.lastActiveIndex = -1;
+    this.settlementResult = null;
 
     this.renderScene();
     this.activate();
@@ -148,7 +180,7 @@ export class LevelThreeGame {
     this.shareButton = document.createElement("button");
     this.shareButton.type = "button";
     this.shareButton.className = "l3-share-button";
-    this.shareButton.textContent = "截图分享";
+    this.shareButton.textContent = "分享";
     this.shareButton.addEventListener("click", () => this.captureShare());
     this.replayButton = document.createElement("button");
     this.replayButton.type = "button";
@@ -164,55 +196,88 @@ export class LevelThreeGame {
     this.stage.dispatchEvent(new CustomEvent("level-three-replay"));
   }
 
-  captureShare() {
-    const { time, steps } = journey.format();
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1920;
-    const ctx = canvas.getContext("2d");
-    const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
-    gradient.addColorStop(0, "#0d5482");
-    gradient.addColorStop(0.55, "#176b9b");
-    gradient.addColorStop(1, "#074a73");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1080, 1920);
+  async captureShare() {
+    const { time, steps } = this.settlementResult || journey.format();
+    const idleLabel = "分享";
+    this.shareButton.disabled = true;
+    this.shareButton.textContent = "生成中…";
 
-    const moonGradient = ctx.createRadialGradient(820, 360, 8, 820, 360, 96);
-    moonGradient.addColorStop(0, "#fcf0c4");
-    moonGradient.addColorStop(0.7, "#e8c66a");
-    moonGradient.addColorStop(1, "rgba(216,173,74,0)");
-    ctx.fillStyle = moonGradient;
-    ctx.beginPath();
-    ctx.arc(820, 360, 96, 0, Math.PI * 2);
-    ctx.fill();
+    try {
+      const [cardImage] = await Promise.all([
+        shareCardImage,
+        document.fonts?.ready || Promise.resolve(),
+      ]);
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
 
-    ctx.textAlign = "center";
-    ctx.fillStyle = "rgba(247,246,242,0.94)";
-    ctx.font = "600 84px 'Source Han Serif SC', serif";
-    ctx.fillText("你真的游到了", 540, 760);
-    ctx.fillText("海水变蓝。", 540, 880);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#173e58";
+      ctx.font = "500 32px 'Source Han Serif SC', 'Noto Serif SC', serif";
+      ctx.fillText("字 里 行 间 · 旅 程 结 算", 540, 280);
 
-    ctx.fillStyle = "rgba(247,246,242,0.66)";
-    ctx.font = "400 46px 'Source Han Serif SC', serif";
-    ctx.fillText(`用 ${journey.steps} 步，从李白游到余华`, 540, 1080);
+      ctx.fillStyle = "#123a55";
+      ctx.font = "600 82px 'Source Han Serif SC', 'Noto Serif SC', serif";
+      ctx.fillText("你真的游到了", 540, 530);
+      ctx.fillText("海水变蓝。", 540, 642);
 
-    ctx.fillStyle = "rgba(247,246,242,0.8)";
-    ctx.font = "400 52px 'Source Han Serif SC', serif";
-    ctx.fillText(`用时 ${time}　步数 ${steps}`, 540, 1320);
+      ctx.fillStyle = "rgba(23, 62, 88, 0.68)";
+      ctx.font = "400 36px 'Source Han Serif SC', 'Noto Serif SC', serif";
+      ctx.fillText("从故乡，一直游到海水变蓝。", 540, 748);
 
-    ctx.fillStyle = "#e8d9a8";
-    ctx.font = "500 56px 'Source Han Serif SC', serif";
-    ctx.fillText("#一直游", 540, 1620);
+      ctx.strokeStyle = "rgba(23, 62, 88, 0.24)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(310, 814);
+      ctx.lineTo(770, 814);
+      ctx.stroke();
 
-    canvas.toBlob((blob) => {
-      if (!blob) return;
+      drawRoundedRect(ctx, 246, 868, 588, 222, 22);
+      ctx.fillStyle = "rgba(250, 244, 224, 0.72)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(23, 62, 88, 0.2)";
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(23, 62, 88, 0.58)";
+      ctx.font = "500 28px 'Source Han Serif SC', 'Noto Serif SC', serif";
+      ctx.fillText("用 时", 390, 934);
+      ctx.fillText("步 数", 690, 934);
+
+      ctx.fillStyle = "#143d58";
+      ctx.font = "600 46px 'Source Han Serif SC', 'Noto Serif SC', serif";
+      ctx.fillText(time, 390, 1010);
+      ctx.fillText(steps, 690, 1010);
+
+      ctx.fillStyle = "rgba(23, 62, 88, 0.62)";
+      ctx.font = "400 28px 'Source Han Serif SC', 'Noto Serif SC', serif";
+      ctx.fillText("一次关于文字的远行", 540, 1178);
+
+      ctx.fillStyle = "#173e58";
+      ctx.font = "500 30px 'Source Han Serif SC', 'Noto Serif SC', serif";
+      ctx.fillText("字 里 行 间", 540, 1250);
+
+      const blob = await canvasToBlob(canvas);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "一直游到海水变蓝.png";
+      link.download = "字里行间-一直游到海水变蓝.png";
+      document.body.append(link);
       link.click();
-      URL.revokeObjectURL(url);
-    }, "image/png");
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.shareButton.textContent = "已保存";
+    } catch (error) {
+      console.error(error);
+      this.shareButton.textContent = "保存失败";
+    } finally {
+      window.setTimeout(() => {
+        if (this.disposed) return;
+        this.shareButton.disabled = false;
+        this.shareButton.textContent = idleLabel;
+      }, 1400);
+    }
   }
 
   renderSea() {
@@ -326,6 +391,7 @@ export class LevelThreeGame {
     this.entering = false;
     this.lastFrame = performance.now();
     this.lastActiveIndex = -1;
+    this.settlementResult = null;
     this.stage.classList.remove("is-level-three-complete");
     this.endLine.classList.remove("is-visible");
     this.settlement.classList.remove("is-visible");
@@ -351,6 +417,7 @@ export class LevelThreeGame {
     this.blueProgress = 1;
     this.update(1, performance.now(), 1);
     this.finished = true;
+    this.settlementResult = journey.format();
     this.holdLeft = false;
     this.holdRight = false;
     this.actor.dataset.sheet = "motion";
@@ -371,7 +438,7 @@ export class LevelThreeGame {
   }
 
   revealSettlement() {
-    const { time, steps } = journey.format();
+    const { time, steps } = this.settlementResult || journey.format();
     this.statTime.textContent = time;
     this.statSteps.textContent = steps;
     this.endLine.classList.remove("is-visible");

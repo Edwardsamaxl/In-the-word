@@ -72,6 +72,7 @@ export class LevelTwoGame {
     this.renderPoem();
     this.renderInkSea();
     this.activateStage();
+    this.actor.dataset.direction = "right";
 
     if (this.qaScene && this.qaScene.startsWith("l2-")) {
       this.applyQaScene(this.qaScene);

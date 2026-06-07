@@ -1612,6 +1612,7 @@ button {
 .l3-share-button,
 .l3-replay-button {
   height: 44px;
+  min-width: 112px;
   font-family: inherit;
   font-size: 15px;
   font-weight: 500;
@@ -1621,7 +1622,7 @@ button {
 
 .l3-share-button {
   padding: 0 22px;
-  border: none;
+  border: 1px solid rgb(232 217 168 / 88%);
   border-radius: 4px;
   background: #e8d9a8;
   color: #074a73;
@@ -1640,29 +1641,35 @@ button {
   transform: scale(0.96);
 }
 
+.l3-share-button:disabled {
+  cursor: wait;
+  filter: saturate(0.7);
+  opacity: 0.82;
+}
+
 .l3-replay-button {
-  position: relative;
-  padding: 0 12px;
-  border: none;
-  background: none;
-  color: rgb(247 246 242 / 78%);
+  padding: 0 20px;
+  border: 1px solid rgb(247 246 242 / 56%);
+  border-radius: 4px;
+  background: rgb(7 74 115 / 22%);
+  color: rgb(247 246 242 / 92%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 10%),
+    0 2px 7px rgb(7 47 73 / 14%);
+  transition:
+    background-color 140ms ease-out,
+    border-color 140ms ease-out,
+    transform 100ms ease-out;
 }
 
-.l3-replay-button::after {
-  position: absolute;
-  right: 12px;
-  bottom: 8px;
-  left: 12px;
-  height: 1px;
-  background: rgb(247 246 242 / 70%);
-  content: "";
-  opacity: 0;
-  transition: opacity 150ms ease-out;
+.l3-replay-button:hover {
+  border-color: rgb(247 246 242 / 78%);
+  background: rgb(7 74 115 / 34%);
+  transform: translateY(-1px);
 }
 
-.l3-replay-button:hover::after,
-.l3-replay-button:focus-visible::after {
-  opacity: 1;
+.l3-replay-button:active {
+  transform: scale(0.96);
 }
 
 .l3-share-button:focus-visible,

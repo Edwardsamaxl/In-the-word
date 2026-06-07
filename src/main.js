@@ -193,6 +193,7 @@ class LevelOneGame {
 
     this.stage.className = "game-stage";
     this.actor.style.opacity = "0";
+    this.actor.dataset.direction = "right";
     this.actor.style.scale = "";
     this.trail.style.opacity = "0";
     this.light.style.opacity = "0";
